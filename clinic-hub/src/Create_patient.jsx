@@ -10,7 +10,8 @@ function Create_patient() {
   const [email, set_email] = useState('')
   const [phone, set_phone] = useState('')
   const [address, set_address] = useState('')
-  const [emergency_phone, se_temergency_phone] = useState('')
+    const [emergency_name, set_emergency_name] = useState('')
+  const [emergency_phone, set_emergency_phone] = useState('')
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -67,10 +68,13 @@ function Create_patient() {
           <label>Address</label>
           <input value={address} onChange={(e) => set_address(e.target.value)} style={{ width: '100%', padding: '8px' }} />
         </div>
-
+        <div style={{ marginTop: '12px' }}>
+          <label>Emergency Contact Name</label>
+          <input value={emergency_name} onChange={(e) => set_emergency_name(e.target.value)} style={{ width: '100%', padding: '8px' }} />
+        </div>
         <div style={{ marginTop: '12px' }}>
           <label>Emergency Contact Phone</label>
-          <input value={emergency_phone} onChange={(e) => se_temergency_phone(e.target.value)} style={{ width: '100%', padding: '8px' }} />
+          <input value={emergency_phone} onChange={(e) => set_emergency_phone(e.target.value)} style={{ width: '100%', padding: '8px' }} />
         </div>
 
         <button type="submit" style={{ marginTop: '16px', padding: '10px 16px', background: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}>
