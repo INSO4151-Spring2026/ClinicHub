@@ -36,9 +36,6 @@ function App() {
           <Link to="/create-patient">
             <button>Create Patient</button>
           </Link>
-          <p className="read-the-docs">
-            Click on the Vite and React logos to learn more
-          </p>
         </>
       } />
       <Route path="/login" element={<Login_page />} />
