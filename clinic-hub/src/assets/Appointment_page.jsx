@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
+// 1. Import useNavigate
+import { useNavigate } from 'react-router-dom'; 
 
 const Appointment_page = () => {
+  const navigate = useNavigate(); // 2. Initialize the hook
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -19,7 +23,6 @@ const Appointment_page = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // In a real app, you'd send formData to your API here
     console.log('Appointment Booked:', formData);
     setSubmitted(true);
   };
@@ -30,6 +33,13 @@ const Appointment_page = () => {
         <h2>Success! 🎉</h2>
         <p>Your appointment for {formData.service} on {formData.date} at {formData.time} is confirmed.</p>
         <button onClick={() => setSubmitted(false)}>Book Another</button>
+        {/* Added navigation to success screen too */}
+        <button 
+          onClick={() => navigate('/')} 
+          style={{ ...buttonStyle, backgroundColor: '#6c757d', marginLeft: '10px' }}
+        >
+          Go Back Home
+        </button>
       </div>
     );
   }
@@ -76,28 +86,19 @@ const Appointment_page = () => {
 
         <button type="submit" style={buttonStyle}>Confirm Booking</button>
       </form>
+
+      {/* 3. Use navigate('/') on click */}
+      <button 
+        onClick={() => navigate('/')} 
+        style={{ width: '100%', marginTop: '10px', padding: '10px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+      >
+        Go Back Home
+      </button>
     </div>
   );
 };
 
-// Simple inline styles
-const inputStyle = {
-  width: '100%',
-  padding: '8px',
-  marginTop: '5px',
-  borderRadius: '4px',
-  border: '1px solid #ccc',
-  boxSizing: 'border-box'
-};
-
-const buttonStyle = {
-  backgroundColor: '#007bff',
-  color: 'white',
-  padding: '10px',
-  border: 'none',
-  borderRadius: '4px',
-  cursor: 'pointer',
-  fontSize: '16px'
-};
+const inputStyle = { width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' };
+const buttonStyle = { backgroundColor: '#007bff', color: 'white', padding: '10px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px' };
 
 export default Appointment_page;
