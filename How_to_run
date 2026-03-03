@@ -1,0 +1,5 @@
+Steps to run the web page:
+
+cd clinic_hub
+npm install
+npm run dev
