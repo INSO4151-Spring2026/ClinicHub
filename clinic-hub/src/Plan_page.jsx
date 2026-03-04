@@ -144,7 +144,7 @@ function Plan_page() {
           <label style={{ cursor: 'pointer', display: 'block' }}>
             <div style={{ fontSize: '24px', marginBottom: '8px' }}>📸</div>
             <div style={{ fontWeight: 'bold', color: '#007bff', marginBottom: '4px' }}>
-              {id_photo ? 'Photo Selected' : 'Upload Identification Photo'}
+              {id_photo ? 'Photo Selected' : 'Upload Insurance Photo'}
             </div>
             <div style={{ fontSize: '12px', color: '#666' }}></div>
             <input 
