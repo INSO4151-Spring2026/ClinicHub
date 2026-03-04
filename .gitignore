@@ -36,7 +36,6 @@ htmlcov/
 *.db
 
 # Dump files
-*.sql
 *.dump
 
 # =========================
