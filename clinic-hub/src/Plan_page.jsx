@@ -10,7 +10,17 @@ function Plan_page() {
     effectiveDate: '',
     copay: ''
   })
+ // State for ID Photo
+  const [id_photo, setIdPhoto] = useState(null)
+  const [previewUrl, setPreviewUrl] = useState(null)
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setIdPhoto(file)
+      setPreviewUrl(URL.createObjectURL(file))
+    }
+  }
   const handleChange = (e) => {
     const { name, value } = e.target
     setBillingData(prev => ({ ...prev, [name]: value }))
@@ -121,7 +131,45 @@ function Plan_page() {
             style={inputStyle} 
           />
         </div>
+{/* --- Insurance PHOTO BOX --- */}
+        <div style={{ 
+          marginTop: '20px', 
+          padding: '20px', 
+          border: '2px dashed #007bff', 
+          borderRadius: '8px', 
+          backgroundColor: '#f8fbff',
+          textAlign: 'center'
+        }}>
+          <label style={{ display: 'block', marginBottom: '4px' }}></label>
+          <label style={{ cursor: 'pointer', display: 'block' }}>
+            <div style={{ fontSize: '24px', marginBottom: '8px' }}>📸</div>
+            <div style={{ fontWeight: 'bold', color: '#007bff', marginBottom: '4px' }}>
+              {id_photo ? 'Photo Selected' : 'Upload Identification Photo'}
+            </div>
+            <div style={{ fontSize: '12px', color: '#666' }}></div>
+            <input 
+              type="file" 
+              accept="image/*" 
+              onChange={handleFileChange} 
+              style={{ display: 'none' }} 
+            />
+          </label>
 
+          {previewUrl && (
+            <div style={{ marginTop: '15px', position: 'relative' }}>
+              <img 
+                src={previewUrl} 
+                alt="ID Preview" 
+                style={{ width: '100%', maxHeight: '180px', objectFit: 'contain', borderRadius: '4px', border: '1px solid #ddd', background: '#fff' }} 
+              />
+              <p style={{ fontSize: '11px', color: '#888', marginTop: '5px' }}>{id_photo.name}</p>
+            </div>
+          )}
+           
+        </div>
+        {/* ------------------------------- */}
+        
+        <label style={{ display: 'block', marginBottom: '4px' }}></label>
         <button type="submit" style={{ width: '100%', padding: '12px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>
           Save Billing Information
         </button>
