@@ -5,7 +5,8 @@ import viteLogo from '/vite.svg'
 import './App.css'
 import Login_page from './Login_page'
 import Create_patient from './Create_patient'
-import Appointment_page from './assets/Appointment_page'  
+import Appointment_page from './assets/Appointment_page'
+import Vitals_page from './Vitals_page'  
 
 function App() {
   const [count, setCount] = useState(0)
@@ -40,11 +41,15 @@ function App() {
           <Link to="/appointment">
             <button>Appointments</button>
           </Link>
+           <Link to="/vitals">
+            <button>Vitals</button>
+          </Link>
         </>
       } />
       <Route path="/login" element={<Login_page />} />
       <Route path="/create-patient" element={<Create_patient />} />
-       <Route path="/appointment" element={<Appointment_page />} />
+      <Route path="/appointment" element={<Appointment_page />} />
+      <Route path="/vitals" element={<Vitals_page />} />
     </Routes>
   )
 }
