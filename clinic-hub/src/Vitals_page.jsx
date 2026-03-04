@@ -115,7 +115,7 @@ function Vitals_page() {
 
       <Link to="/">
         <button style={{ display: 'block', marginTop: '10px', padding: '10px 16px', background: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-          Back Home
+         Go Back Home
         </button>
       </Link>
     </div>

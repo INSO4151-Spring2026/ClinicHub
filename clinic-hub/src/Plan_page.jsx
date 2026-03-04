@@ -129,7 +129,7 @@ function Plan_page() {
 
       <Link to="/" style={{ textDecoration: 'none' }}>
         <button style={{ width: '100%', marginTop: '12px', padding: '10px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-          Cancel and Go Back
+           Go Back Home
         </button>
       </Link>
     </div>
