@@ -56,3 +56,19 @@ function Login_page() {
 
 export default Login_page
 
+// const ProtectedRoute = ({ user, allowedRoles, children }) => {
+//   if (!user) return <Navigate to="/login" replace />;
+//   if (!allowedRoles.includes(user.role)) return <Navigate to="/unauthorized" replace />;
+  
+//   return children;
+// };
+
+// // Usage in App.js
+// <Route 
+//   path="/doctor-dashboard" 
+//   element={
+//     <ProtectedRoute user={user} allowedRoles={['Doctor']}>
+//       <DoctorDashboard />
+//     </ProtectedRoute>
+//   } 
+// />
