@@ -4,12 +4,19 @@ from app.models.user import User
 app = create_app()
 
 with app.app_context():
-    db.create_all()  # Make sure tables exist
 
-    # Create admin user
-    user = User(username="admin")
-    user.set_password("password123")
-    db.session.add(user)
+    # Example admin user
+    new_user = User(
+        role_id=1,   # make sure role 1 exists in roles table
+        first_name="Admin",
+        last_name="User",
+        email="admin@clinichub.com",
+        phone="5551234567"
+    )
+
+    new_user.set_password("admin123")
+
+    db.session.add(new_user)
     db.session.commit()
 
-    print("Admin user created successfully!")
+    print("User created successfully")

@@ -1,12 +1,41 @@
 from app import db
 import bcrypt
-
+from datetime import datetime
 
 class User(db.Model):
+    __tablename__ = "users"
 
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
+    user_id = db.Column(db.Integer, primary_key=True)
+
+    role_id = db.Column(
+        db.Integer,
+        db.ForeignKey("roles.role_id", ondelete="RESTRICT"),
+        nullable=False
+    )
+
+    first_name = db.Column(db.String(100), nullable=False)
+    last_name = db.Column(db.String(100), nullable=False)
+
+    email = db.Column(db.String(255), unique=True, nullable=False)
+
     password_hash = db.Column(db.LargeBinary(60), nullable=False)  # bcrypt hash
+
+    phone = db.Column(db.String(20))
+
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        default=datetime.utcnow
+    )
+
+    updated_at = db.Column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow
+    )
 
     def set_password(self, password):
         # bcrypt.hashpw returns bytes

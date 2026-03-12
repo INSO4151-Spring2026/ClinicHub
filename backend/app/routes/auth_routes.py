@@ -8,15 +8,15 @@ auth = Blueprint("auth", __name__)
 @auth.route("/api/login", methods=["POST"])
 def login():
     data = request.get_json()
-    username = data.get("username")
+    email = data.get("email")
     password = data.get("password")
 
-    user = User.query.filter_by(username=username).first()
+    user = User.query.filter_by(email=email).first()
     if not user or not user.check_password(password):
-        return jsonify({"error": "Invalid username or password"}), 401
+        return jsonify({"error": "Invalid email or password"}), 401
 
-    access_token = generate_access_token(user.id)
-    refresh_token = generate_refresh_token(user.id)
+    access_token = generate_access_token(user.user_id)
+    refresh_token = generate_refresh_token(user.user_id)
 
     return jsonify({
         "access_token": access_token,
@@ -49,8 +49,8 @@ def profile():
     user = User.query.get(payload["user_id"])
     return jsonify({
         "message": "Access granted",
-        "user_id": user.id,
-        "username": user.username
+        "user_id": user.user_id,
+        "email": user.email
     })
 
 @auth.route("/api/refresh", methods=["POST"])
