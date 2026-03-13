@@ -1,3 +1,4 @@
+-- Active: 1772580328224@@127.0.0.1@5432@clinichub
 -- =============================================================================
 -- ClinicHUB - PostgreSQL Database Schema
 -- Tables: ROLES, USERS, PATIENTS, CPT, DIAGNOSIS, APPOINTMENTS, MEDICAL_RECORDS
@@ -203,27 +204,36 @@ CREATE INDEX idx_diagnosis_code ON diagnosis (code);
 -- Core scheduling table; links patient, provider (user), and CPT billing entry
 -- =============================================================================
 CREATE TABLE appointments (
-    appointment_id      SERIAL          PRIMARY KEY,
-    patient_id          INT             NOT NULL REFERENCES patients(patient_id)     ON DELETE CASCADE,
-    provider_user_id    INT             NOT NULL REFERENCES users(user_id)            ON DELETE RESTRICT,
-    cpt_id              INT                      REFERENCES cpt(cpt_id)               ON DELETE SET NULL,
-    scheduled_start     TIMESTAMPTZ     NOT NULL,
-    scheduled_end       TIMESTAMPTZ     NOT NULL,
-    status              VARCHAR(30)     NOT NULL DEFAULT 'scheduled'
-                            CHECK (status IN ('scheduled','confirmed','in_progress','completed','cancelled','no_show')),
-    reason              VARCHAR(255),
-    notes               TEXT,
-    created_at          TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
-    updated_at          TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
-
--- Prevent double-booking: a provider cannot have two appointments at the same start time
-CONSTRAINT uq_provider_timeslot UNIQUE (
-    provider_user_id,
-    scheduled_start
-),
-
--- End time must be after start time
-CONSTRAINT chk_appt_times CHECK (scheduled_end > scheduled_start) );
+    appointment_id SERIAL PRIMARY KEY,
+    patient_id INT NOT NULL REFERENCES patients (patient_id) ON DELETE CASCADE,
+    provider_user_id INT NOT NULL REFERENCES users (user_id) ON DELETE RESTRICT,
+    cpt_id INT REFERENCES cpt (cpt_id) ON DELETE SET NULL,
+    scheduled_start TIMESTAMPTZ NOT NULL,
+    scheduled_end TIMESTAMPTZ NOT NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'scheduled' CHECK (
+        status IN (
+            'scheduled',
+            'confirmed',
+            'in_progress',
+            'completed',
+            'cancelled',
+            'no_show'
+        )
+    ),
+    reason VARCHAR(255),
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    -- Prevent double-booking: a provider cannot have two appointments at the same start time
+    CONSTRAINT uq_provider_timeslot UNIQUE (
+        provider_user_id,
+        scheduled_start
+    ),
+    -- End time must be after start time
+    CONSTRAINT chk_appt_times CHECK (
+        scheduled_end > scheduled_start
+    )
+);
 
 CREATE INDEX idx_appt_patient_id ON appointments (patient_id);
 

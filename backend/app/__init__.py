@@ -7,6 +7,7 @@ from config import config
 # Initialize extensions (not yet bound to an app)
 db = SQLAlchemy()
 
+
 def create_app(config_name="development"):
     app = Flask(__name__)
 
@@ -24,9 +25,9 @@ def create_app(config_name="development"):
         level=logging.DEBUG,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         handlers=[
-            logging.StreamHandler(),              # prints to terminal
-            logging.FileHandler("app.log")        # saves to app.log file
-        ]
+            logging.StreamHandler(),  # prints to terminal
+            logging.FileHandler("app.log"),  # saves to app.log file
+        ],
     )
     app.logger.info("ClinicHUB Flask app initialized")
 
@@ -35,7 +36,10 @@ def create_app(config_name="development"):
     # -------------------------------------------------------------------------
     from app.routes import main
     from app.routes.auth_routes import auth
+    from app.routes.patients import patients
+
     app.register_blueprint(main)
+    app.register_blueprint(patients)
     app.register_blueprint(auth)
 
     # -------------------------------------------------------------------------
