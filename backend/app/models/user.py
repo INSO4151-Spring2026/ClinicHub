@@ -2,15 +2,14 @@ from app import db
 import bcrypt
 from datetime import datetime
 
+
 class User(db.Model):
     __tablename__ = "users"
 
     user_id = db.Column(db.Integer, primary_key=True)
 
     role_id = db.Column(
-        db.Integer,
-        db.ForeignKey("roles.role_id", ondelete="RESTRICT"),
-        nullable=False
+        db.Integer, db.ForeignKey("roles.role_id", ondelete="RESTRICT"), nullable=False
     )
 
     first_name = db.Column(db.String(100), nullable=False)
@@ -25,16 +24,14 @@ class User(db.Model):
     is_active = db.Column(db.Boolean, nullable=False, default=True)
 
     created_at = db.Column(
-        db.DateTime(timezone=True),
-        nullable=False,
-        default=datetime.utcnow
+        db.DateTime(timezone=True), nullable=False, default=datetime.utcnow
     )
 
     updated_at = db.Column(
         db.DateTime(timezone=True),
         nullable=False,
         default=datetime.utcnow,
-        onupdate=datetime.utcnow
+        onupdate=datetime.utcnow,
     )
 
     def set_password(self, password):

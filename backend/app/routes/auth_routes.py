@@ -5,6 +5,7 @@ from app.utils.jwt_handler import generate_access_token, generate_refresh_token
 
 auth = Blueprint("auth", __name__)
 
+
 @auth.route("/api/login", methods=["POST"])
 def login():
     data = request.get_json()
@@ -18,15 +19,13 @@ def login():
     access_token = generate_access_token(user.user_id)
     refresh_token = generate_refresh_token(user.user_id)
 
-    return jsonify({
-        "access_token": access_token,
-        "refresh_token": refresh_token
-    })
+    return jsonify({"access_token": access_token, "refresh_token": refresh_token})
 
 
 @auth.route("/api/logout", methods=["POST"])
 def logout():
     return jsonify({"message": "User logged out successfully"})
+
 
 @auth.route("/api/profile", methods=["GET"])
 def profile():
@@ -47,11 +46,10 @@ def profile():
 
     # Optionally, return user info
     user = User.query.get(payload["user_id"])
-    return jsonify({
-        "message": "Access granted",
-        "user_id": user.user_id,
-        "email": user.email
-    })
+    return jsonify(
+        {"message": "Access granted", "user_id": user.user_id, "email": user.email}
+    )
+
 
 @auth.route("/api/refresh", methods=["POST"])
 def refresh():
