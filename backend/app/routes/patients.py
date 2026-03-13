@@ -6,13 +6,13 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-patients_bp = Blueprint("patients", __name__, url_prefix="/api/patients")
+patients = Blueprint("patients", __name__, url_prefix="/api/patients")
 
 
 # -----------------------------------------------------------------------------
 # POST /api/patients - Create a new patient
 # -----------------------------------------------------------------------------
-@patients_bp.route("", methods=["POST"])
+@patients.route("", methods=["POST"])
 def create_patient():
     """
     Create a new patient record
@@ -95,7 +95,7 @@ def create_patient():
 # -----------------------------------------------------------------------------
 # GET /api/patients/:id - Get a specific patient by ID
 # -----------------------------------------------------------------------------
-@patients_bp.route("/<int:patient_id>", methods=["GET"])
+@patients.route("/<int:patient_id>", methods=["GET"])
 def get_patient(patient_id):
     """
     Retrieve a single patient by their ID
@@ -117,7 +117,7 @@ def get_patient(patient_id):
 # -----------------------------------------------------------------------------
 # PUT /api/patients/:id - Update a patient
 # -----------------------------------------------------------------------------
-@patients_bp.route("/<int:patient_id>", methods=["PUT"])
+@patients.route("/<int:patient_id>", methods=["PUT"])
 def update_patient(patient_id):
     """
     Update an existing patient record
@@ -200,7 +200,7 @@ def update_patient(patient_id):
 # -----------------------------------------------------------------------------
 # DELETE /api/patients/:id - Delete a patient
 # -----------------------------------------------------------------------------
-@patients_bp.route("/<int:patient_id>", methods=["DELETE"])
+@patients.route("/<int:patient_id>", methods=["DELETE"])
 def delete_patient(patient_id):
     """
     Delete a patient record
@@ -230,7 +230,7 @@ def delete_patient(patient_id):
 # -----------------------------------------------------------------------------
 # GET /api/patients - List all patients with pagination and search
 # -----------------------------------------------------------------------------
-@patients_bp.route("", methods=["GET"])
+@patients.route("", methods=["GET"])
 def list_patients():
     """
     List all patients with pagination and optional search

@@ -35,10 +35,12 @@ def create_app(config_name="development"):
     # Register blueprints (routes)
     # -------------------------------------------------------------------------
     from app.routes import main
-    from app.routes.patients import patients_bp
+    from app.routes.auth_routes import auth
+    from app.routes.patients import patients
 
     app.register_blueprint(main)
-    app.register_blueprint(patients_bp)
+    app.register_blueprint(patients)
+    app.register_blueprint(auth)
 
     # -------------------------------------------------------------------------
     # Basic error handlers
