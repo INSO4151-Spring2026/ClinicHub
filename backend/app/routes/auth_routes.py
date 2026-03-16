@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from app import db
 from app.utils.jwt_handler import verify_token
 from app.models.user import User
 from app.utils.jwt_handler import generate_access_token, generate_refresh_token
@@ -45,7 +46,7 @@ def profile():
         return jsonify({"error": "Invalid or expired token"}), 403
 
     # Optionally, return user info
-    user = User.query.get(payload["user_id"])
+    user = db.session.get(User, payload["user_id"])
     return jsonify(
         {"message": "Access granted", "user_id": user.user_id, "email": user.email}
     )

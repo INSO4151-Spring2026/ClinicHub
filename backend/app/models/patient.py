@@ -1,5 +1,5 @@
 from app import db
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class Patient(db.Model):
@@ -19,13 +19,13 @@ class Patient(db.Model):
     emergency_contact_name = db.Column(db.String(150))
     emergency_contact_phone = db.Column(db.String(20))
     created_at = db.Column(
-        db.DateTime(timezone=True), nullable=False, default=datetime.utcnow
+        db.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
     )
     updated_at = db.Column(
         db.DateTime(timezone=True),
         nullable=False,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
     )
 
     def to_dict(self):

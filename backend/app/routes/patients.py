@@ -101,7 +101,7 @@ def get_patient(patient_id):
     Retrieve a single patient by their ID
     """
     try:
-        patient = Patient.query.get(patient_id)
+        patient = db.session.get(Patient, patient_id)
 
         if not patient:
             return jsonify({"error": "Patient not found"}), 404
@@ -135,7 +135,7 @@ def update_patient(patient_id):
     }
     """
     try:
-        patient = Patient.query.get(patient_id)
+        patient = db.session.get(Patient, patient_id)
 
         if not patient:
             return jsonify({"error": "Patient not found"}), 404
@@ -207,7 +207,7 @@ def delete_patient(patient_id):
     Note: This will delete the patient record. In production, you may want to implement soft deletes instead.
     """
     try:
-        patient = Patient.query.get(patient_id)
+        patient = db.session.get(Patient, patient_id)
 
         if not patient:
             return jsonify({"error": "Patient not found"}), 404

@@ -1,6 +1,6 @@
 from app import db
 import bcrypt
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class User(db.Model):
@@ -24,14 +24,14 @@ class User(db.Model):
     is_active = db.Column(db.Boolean, nullable=False, default=True)
 
     created_at = db.Column(
-        db.DateTime(timezone=True), nullable=False, default=datetime.utcnow
+        db.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
     )
 
     updated_at = db.Column(
         db.DateTime(timezone=True),
         nullable=False,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
     )
 
     def set_password(self, password):
@@ -39,6 +39,6 @@ class User(db.Model):
         self.password_hash = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
 
     def check_password(self, password):
-        if not self.password_hash:
+        if not self.password_hash or not password:
             return False
         return bcrypt.checkpw(password.encode("utf-8"), self.password_hash)
