@@ -1,6 +1,9 @@
 
 const authorize = (allowedRoles) => {
   return (req, res, next) => {
+
+    console.log(`Checking access: User Role [${req.user?.role}] vs Allowed [${allowedRoles}]`);
+    
     if (!req.user) {
       return res.status(401).json({ message: "Unauthorized: No user found" });
     }
