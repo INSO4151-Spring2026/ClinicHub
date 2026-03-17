@@ -60,15 +60,22 @@ function Plan_page() {
         {/* Insurance Carrier */}
         <div style={groupStyle}>
           <label style={labelStyle}>Insurance Carrier Name:</label>
-          <input 
-            type="text" 
+          <select 
             name="carrierName"
             value={billingData.carrierName}
             onChange={handleChange}
-            placeholder="e.g. BlueCross BlueShield"
             required 
-            style={inputStyle} 
-          />
+            style={inputStyle}
+          >
+            <option value="">-- Select Insurance Carrier --</option>
+            <option value="BlueCross BlueShield">BlueCross BlueShield</option>
+            <option value="Aetna">Aetna</option>
+            <option value="UnitedHealthcare">UnitedHealthcare</option>
+            <option value="Cigna">Cigna</option>
+            <option value="Medicare">Medicare</option>
+            <option value="Medicaid">Medicaid</option>
+            <option value="Self-Pay">Self-Pay / No Insurance</option>
+          </select>
         </div>
 
         {/* Member ID & Group Number */}
@@ -131,7 +138,7 @@ function Plan_page() {
             style={inputStyle} 
           />
         </div>
-{/* --- Insurance PHOTO BOX --- */}
+        {/* Insurance PHOTO BOX */}
         <div style={{ 
           marginTop: '20px', 
           padding: '20px', 
@@ -167,7 +174,7 @@ function Plan_page() {
           )}
            
         </div>
-        {/* ------------------------------- */}
+        {/*Save and back button */}
         
         <label style={{ display: 'block', marginBottom: '4px' }}></label>
         <button type="submit" style={{ width: '100%', padding: '12px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>
