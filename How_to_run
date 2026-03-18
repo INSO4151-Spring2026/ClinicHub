@@ -3,3 +3,9 @@ Steps to run the web page:
 cd clinic_hub
 npm install
 npm run dev
+
+
+Run node server 
+
+cd clinic_hub
+node src/server.js

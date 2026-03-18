@@ -25,23 +25,52 @@ function Create_patient() {
     }
   }
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    const patient = { 
-      first_name, 
-      last_name, 
-      last_name_2, 
-      dob, 
-      sex, 
-      email, 
-      phone, 
-      address, 
-      emergency_name, 
-      emergency_phone,
-      id_photo // The actual file object for your API
+const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Using FormData to handle the text and the ID photo file
+    const formData = new FormData();
+    formData.append('first_name', first_name);
+    formData.append('last_name', last_name);
+    formData.append('last_name_2', last_name_2);
+    formData.append('dob', dob);
+    formData.append('sex', sex);
+    formData.append('email', email);
+    formData.append('phone', phone);
+    formData.append('address', address);
+    formData.append('emergency_name', emergency_name);
+    formData.append('emergency_phone', emergency_phone);
+    
+    if (id_photo) {
+      formData.append('id_photo', id_photo);
     }
-    console.log('Create patient:', patient)
-  }
+
+    // Get the token from localStorage
+    const token = localStorage.getItem('token');
+
+    try {
+      const response = await fetch('http://localhost:5000/api/patients', {
+        method: 'POST',
+        headers: {
+          
+          'Authorization': `Bearer ${token}` 
+        },
+        body: formData,
+      });
+
+      if (response.ok) {
+        alert("✅ Patient created successfully!");
+        // Resetting form or redirecting could go here
+      } else if (response.status === 403) {
+        alert("🚫 Access Denied: You don't have permission to create patients.");
+      } else {
+        alert("⚠️ Error: Could not save patient.");
+      }
+    } catch (err) {
+      console.error("Connection error:", err);
+      alert("❌ Connection Failed: Is the server running?");
+    }
+  };
 
   return (
     <div style={{ maxWidth: '600px', margin: '40px auto', padding: '30px', border: '1px solid #ddd', borderRadius: '8px', fontFamily: 'sans-serif' }}>

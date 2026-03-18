@@ -37,15 +37,34 @@ useEffect(() => {
   }
 }, [height, weight])
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    const vitals = {
-      height, weight, bmi, bmi_category, 
-      bp, temperature, pulse, respiratory_rate, 
-      o2_saturation, pain_level, head_circumference 
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  const vitals = {
+    height, weight, bmi, bmi_category, 
+    bp, temperature, pulse, respiratory_rate, 
+    o2_saturation, pain_level, head_circumference 
+  };
+
+  // Get the token we saved during login
+  const token = localStorage.getItem('token');
+
+  try {
+      const response = await fetch('http://localhost:5000/api/vitals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(vitals),
+      });
+
+      if (response.ok) {
+        alert("✅ Server Received Vitals!");
+      } else if (response.status === 403) {
+        alert("🚫 Middleware Blocked You: Forbidden");
+      }
+    } catch (err) {
+      alert("❌ Connection Failed: Is your Node server running on port 5000?");
     }
-    console.log('Record Vitals:', vitals)
-  }
+  };
 
   return (
     <div style={{ maxWidth: '700px', margin: '40px auto', padding: '30px', border: '1px solid #ddd', borderRadius: '8px', fontFamily: 'Arial, sans-serif' }}>

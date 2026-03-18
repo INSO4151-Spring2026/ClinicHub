@@ -1,4 +1,3 @@
-
 const authorize = (allowedRoles) => {
   return (req, res, next) => {
 
@@ -18,4 +17,5 @@ const authorize = (allowedRoles) => {
   };
 };
 
-module.exports = authorize;
+
+export default authorize;

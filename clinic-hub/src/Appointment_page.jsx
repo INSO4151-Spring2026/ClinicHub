@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-// 1. Import useNavigate
 import { useNavigate } from 'react-router-dom'; 
 
 const Appointment_page = () => {
-  const navigate = useNavigate(); // 2. Initialize the hook
+  const navigate = useNavigate(); 
   
   const [formData, setFormData] = useState({
     name: '',
@@ -21,10 +20,33 @@ const Appointment_page = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = (e) => {
+const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Appointment Booked:', formData);
-    setSubmitted(true);
+
+    const token = localStorage.getItem('token');
+
+    try {
+      const response = await fetch('http://localhost:5000/api/appointments', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        console.log('Appointment Booked:', formData);
+        setSubmitted(true);
+      } else if (response.status === 403) {
+        alert("🚫 Access Denied: You don't have permission to book appointments.");
+      } else {
+        alert("⚠️ Error: Could not save appointment.");
+      }
+    } catch (err) {
+      console.error("Connection error:", err);
+      alert("❌ Connection Failed: Is your Node server running on port 5000?");
+    }
   };
 
   if (submitted) {

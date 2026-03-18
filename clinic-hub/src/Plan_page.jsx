@@ -26,11 +26,49 @@ function Plan_page() {
     setBillingData(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    console.log('Billing Data Submitted:', billingData)
-    // Add logic to save data to your backend here
-  }
+const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // 1. Prepare the data
+    // Use FormData when you need to send files (like id_photo)
+    const formData = new FormData();
+    formData.append('memberId', billingData.memberId);
+    formData.append('groupId', billingData.groupId);
+    formData.append('planType', billingData.planType);
+    formData.append('carrierName', billingData.carrierName);
+    formData.append('effectiveDate', billingData.effectiveDate);
+    formData.append('copay', billingData.copay);
+    
+    if (id_photo) {
+      formData.append('id_photo', id_photo);
+    }
+
+    // 2. Get the token from login
+    const token = localStorage.getItem('token');
+
+    try {
+      const response = await fetch('http://localhost:5000/api/billing', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}` 
+        },
+        body: formData,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert("✅ Billing information saved successfully!");
+        console.log('Server Response:', result);
+      } else if (response.status === 403) {
+        alert("🚫 Access Denied: Only Receptionists or Admins can save billing info.");
+      } else {
+        alert("⚠️ Error saving data. Check the server logs.");
+      }
+    } catch (err) {
+      console.error("Submission error:", err);
+      alert("❌ Connection Failed: Is your Node server running?");
+    }
+  };
 
   const inputStyle = {
     width: '100%',
