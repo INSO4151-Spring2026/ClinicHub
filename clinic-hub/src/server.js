@@ -8,26 +8,43 @@ const upload = multer();
 
 app.use(express.json()); 
 
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5173', 
+  allowedHeaders: ['Content-Type', 'Authorization'], 
+  methods: ['GET', 'POST', 'PUT', 'DELETE']
+}));
 
-// in here do token verification and role extraction, then attach to req.user
+// token verification and role extraction, then attach to req.user
+
+const MOCK_TOKENS = {
+  'mock-token-admin': { id: 1, name: 'Alice', role: 'Admin' },
+  'mock-token-doctor': { id: 2, name: 'Dr. Smith', role: 'Doctor' },
+  'mock-token-receptionist': { id: 3, name: 'Bob', role: 'Receptionist' }
+};
+
 app.use((req, res, next) => {
+  const authHeader = req.headers.authorization;
 
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // user not identified
+    req.user = null; 
+    return next();
+  }
 
-//     const authHeader = req.headers.authorization;
+  // Extract the string after "Bearer "
+  const token = authHeader.split(' ')[1]; 
   
-//   if (authHeader) {
-//     const token = authHeader.split(' ')[1]; // Get 'mock-token-doctor'
-    
-//     // Map the token to a role (In the future, you'll use JWT here)
-//     if (token === 'mock-token-admin') req.user = { role: 'Admin' };
-//     if (token === 'mock-token-doctor') req.user = { role: 'Doctor' };
-//     if (token === 'mock-token-receptionist') req.user = { role: 'Receptionist' };
-//   }
-    // req.user = { role: 'Admin' }; 
-    req.user = { role: 'Doctor' }; 
-    // req.user = { role: 'Receptionist' }; 
-  console.log(`Current Request User Role: ${req.user.role}`);
+  // Look up the user in our mock database
+  const user = MOCK_TOKENS[token];
+
+  if (user) {
+    req.user = user; // Attach the user object to the request
+    console.log(`✅ Authenticated as: ${user.role}`);
+  } else {
+    req.user = null;
+    console.log(`❌ Invalid Token: ${token}`);
+  }
+
   next();
 });
 

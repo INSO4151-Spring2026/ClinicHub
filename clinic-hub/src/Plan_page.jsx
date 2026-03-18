@@ -3,11 +3,11 @@ import { Link } from 'react-router-dom'
 
 function Plan_page() {
   const [billingData, setBillingData] = useState({
-    memberId: '',
-    groupId: '',
-    planType: 'PPO',
-    carrierName: '',
-    effectiveDate: '',
+    member_id: '',      // Changed to snake_case
+    group_id: '',       // Changed to snake_case
+    plan_type: 'PPO',   // Changed to snake_case
+    carrier_name: '',   // Changed to snake_case
+    effective_date: '', // Changed to snake_case
     copay: ''
   })
  // State for ID Photo
@@ -32,11 +32,11 @@ const handleSubmit = async (e) => {
     // 1. Prepare the data
     // Use FormData when you need to send files (like id_photo)
     const formData = new FormData();
-    formData.append('memberId', billingData.memberId);
-    formData.append('groupId', billingData.groupId);
-    formData.append('planType', billingData.planType);
-    formData.append('carrierName', billingData.carrierName);
-    formData.append('effectiveDate', billingData.effectiveDate);
+    formData.append('member_id', billingData.member_id);
+    formData.append('group_id', billingData.group_id);
+    formData.append('plan_type', billingData.plan_type);
+    formData.append('carrier_name', billingData.carrier_name);
+    formData.append('effective_date', billingData.effective_date);
     formData.append('copay', billingData.copay);
     
     if (id_photo) {
@@ -99,8 +99,8 @@ const handleSubmit = async (e) => {
         <div style={groupStyle}>
           <label style={labelStyle}>Insurance Carrier Name:</label>
           <select 
-            name="carrierName"
-            value={billingData.carrierName}
+            name="carrier_name"
+            value={billingData.carrier_name}
             onChange={handleChange}
             required 
             style={inputStyle}
@@ -122,8 +122,8 @@ const handleSubmit = async (e) => {
             <label style={labelStyle}>Member ID / Policy #:</label>
             <input 
               type="text" 
-              name="memberId"
-              value={billingData.memberId}
+              name="member_id"
+              value={billingData.member_id}
               onChange={handleChange}
               required 
               style={inputStyle} 
@@ -133,8 +133,8 @@ const handleSubmit = async (e) => {
             <label style={labelStyle}>Group Number:</label>
             <input 
               type="text" 
-              name="groupId"
-              value={billingData.groupId}
+              name="group_id"
+              value={billingData.group_id}
               onChange={handleChange}
               style={inputStyle} 
             />
@@ -145,7 +145,7 @@ const handleSubmit = async (e) => {
         <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Plan Type:</label>
-            <select name="planType" value={billingData.planType} onChange={handleChange} style={inputStyle}>
+            <select name="plan_type" value={billingData.plan_type} onChange={handleChange} style={inputStyle}>
               <option value="HMO">HMO</option>
               <option value="PPO">PPO</option>
               <option value="EPO">EPO</option>
@@ -170,8 +170,8 @@ const handleSubmit = async (e) => {
           <label style={labelStyle}>Effective Date:</label>
           <input 
             type="date" 
-            name="effectiveDate"
-            value={billingData.effectiveDate}
+            name="effective_date"
+            value={billingData.effective_date}
             onChange={handleChange}
             style={inputStyle} 
           />
@@ -210,7 +210,7 @@ const handleSubmit = async (e) => {
               <p style={{ fontSize: '11px', color: '#888', marginTop: '5px' }}>{id_photo.name}</p>
             </div>
           )}
-           
+            
         </div>
         {/*Save and back button */}
         
@@ -222,7 +222,7 @@ const handleSubmit = async (e) => {
 
       <Link to="/" style={{ textDecoration: 'none' }}>
         <button style={{ width: '100%', marginTop: '12px', padding: '10px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-           Go Back Home
+            Go Back Home
         </button>
       </Link>
     </div>

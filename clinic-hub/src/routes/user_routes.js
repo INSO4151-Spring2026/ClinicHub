@@ -26,23 +26,52 @@ router.post('/appointments', authorize([ROLES.RECEPTIONIST, ROLES.DOCTOR, ROLES.
 
 // 4. Vitals Submission
 router.post('/vitals', authorize([ROLES.DOCTOR, ROLES.ADMIN]), (req, res) => {
-  const vitalsData = req.body;
-  console.log("Saving to Database:", vitalsData);
-  res.status(201).json({ message: "Vitals saved successfully!" });
+  console.log(`Vitals recorded by: ${req.user.role}`);
+  console.log('Data received:', req.body);
+  res.status(201).json({ message: "Vitals saved to patient record." });
 });
 
 // 5. Billing Information (Receptionist & Admin)
 router.post('/billing', authorize([ROLES.RECEPTIONIST, ROLES.ADMIN]), (req, res) => {
-  const billingData = req.body;
-  console.log("Saving Billing Info:", billingData);
-  res.status(201).json({ message: "Billing information saved successfully!" });
+  // Extract text fields from req.body
+  const { memberId, carrierName, copay } = req.body;
+  
+  // Extract photo from req.files (if uploaded)
+  const files = req.files;
+
+  console.log(`💳 Billing updated by ${req.user.role}: ${req.user.name}`);
+  console.log(`Carrier: ${carrierName}, MemberID: ${memberId}`);
+
+  if (files && files.length > 0) {
+    console.log("📄 Insurance Card Image received.");
+  }
+
+  // Database logic would go here
+  
+  res.status(201).json({ 
+    message: "Billing information saved successfully!",
+    carrier: carrierName 
+  });
 });
 
 // 6. Create New Patient (Receptionist & Admin)
 router.post('/patients', authorize([ROLES.RECEPTIONIST, ROLES.ADMIN]), (req, res) => {
   const patientData = req.body;
-  console.log("Creating New Patient:", patientData);
-  res.status(201).json({ message: "Patient created successfully!" });
+  const files = req.files;
+
+  console.log(`👤 New patient being created by: ${req.user.name} (${req.user.role})`);
+  console.log("Patient Info:", patientData);
+  
+  if (files && files.length > 0) {
+    console.log("ID Photo received:", files[0].originalname);
+  }
+
+  // logic to save to database goes here
+  
+  res.status(201).json({ 
+    message: "Patient created successfully!",
+    patientName: `${patientData.first_name} ${patientData.last_name}`
+  });
 });
 
 // 7 logins for testing
@@ -51,11 +80,11 @@ router.post('/login', (req, res) => {
 
   // Simple simulation logic
   if (email === 'admin@clinic.com' && password === '123') {
-    res.json({ token: 'mock-token-admin', role: 'Admin' });
+    res.json({ token: 'mock-token-admin', role: ROLES.ADMIN });
   } else if (email === 'doctor@clinic.com' && password === '123') {
-    res.json({ token: 'mock-token-doctor', role: 'Doctor' });
+    res.json({ token: 'mock-token-doctor', role: ROLES.DOCTOR });
   } else if (email === 'reception@clinic.com' && password === '123') {
-    res.json({ token: 'mock-token-receptionist', role: 'Receptionist' });
+    res.json({ token: 'mock-token-receptionist', role: ROLES.RECEPTIONIST });
   } else {
     res.status(401).json({ message: "Invalid email or password" });
   }

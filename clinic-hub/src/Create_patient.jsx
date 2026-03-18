@@ -77,26 +77,28 @@ const handleSubmit = async (e) => {
       <h1>Create Patient</h1>
       <form onSubmit={handleSubmit}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          {/* First Name div */}
           <div>
             <label style={{ display: 'block', marginBottom: '4px' }}>First Name</label>
             <input value={first_name} onChange={(e) => set_first_name(e.target.value)} required style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }} />
           </div>
+          {/* Last Name div */}
           <div>
             <label style={{ display: 'block', marginBottom: '4px' }}>Last Name</label>
             <input value={last_name} onChange={(e) => set_last_name(e.target.value)} required style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }} />
           </div>
         </div>
-
+        {/* Second Last Name div */}
         <div style={{ marginTop: '12px' }}>
           <label style={{ display: 'block', marginBottom: '4px' }}>Second Last Name</label>
           <input value={last_name_2} onChange={(e) => set_last_name_2(e.target.value)} style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }} />
         </div>
-
+        {/* Date of Birth div */}
         <div style={{ marginTop: '12px' }}>
           <label style={{ display: 'block', marginBottom: '4px' }}>Date of Birth</label>
           <input type="date" value={dob} onChange={(e) => set_Dob(e.target.value)} required style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }} />
         </div>
-
+        {/* Sex dropdown div */}
         <div style={{ marginTop: '12px' }}>
           <label style={{ display: 'block', marginBottom: '4px' }}>Sex</label>
           <select value={sex} onChange={(e) => set_sex(e.target.value)} required style={{ width: '100%', padding: '8px' }}>
@@ -106,27 +108,27 @@ const handleSubmit = async (e) => {
             <option value="other">Other</option>
           </select>
         </div>
-
+        {/* Email div */}
         <div style={{ marginTop: '12px' }}>
           <label style={{ display: 'block', marginBottom: '4px' }}>Email</label>
           <input type="email" value={email} onChange={(e) => set_email(e.target.value)} style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }} />
         </div>
-
+        {/* Phone div */}
         <div style={{ marginTop: '12px' }}>
           <label style={{ display: 'block', marginBottom: '4px' }}>Phone</label>
           <input value={phone} onChange={(e) => set_phone(e.target.value)} style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }} />
         </div>
-
+        {/* Address div */}
         <div style={{ marginTop: '12px' }}>
           <label style={{ display: 'block', marginBottom: '4px' }}>Address</label>
           <input value={address} onChange={(e) => set_address(e.target.value)} style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }} />
         </div>
-
+        {/* Emergency Contact Name div */}
         <div style={{ marginTop: '12px' }}>
           <label style={{ display: 'block', marginBottom: '4px' }}>Emergency Contact Name</label>
           <input value={emergency_name} onChange={(e) => set_emergency_name(e.target.value)} style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }} />
         </div>
-
+        {/* Emergency Contact Phone div */}
         <div style={{ marginTop: '12px' }}>
           <label style={{ display: 'block', marginBottom: '4px' }}>Emergency Contact Phone</label>
           <input value={emergency_phone} onChange={(e) => set_emergency_phone(e.target.value)} style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }} />
@@ -166,7 +168,7 @@ const handleSubmit = async (e) => {
             </div>
           )}
         </div>
-        {/* ------------------------------- */}
+        {/* Submit Button and go back*/}
         <button type="submit" style={{ marginTop: '24px', width: '100%', padding: '12px', background: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
           Create Patient
         </button>

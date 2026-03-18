@@ -55,7 +55,7 @@ const handleSubmit = async (e) => {
         <h2>Success! 🎉</h2>
         <p>Your appointment for {formData.service} on {formData.date} at {formData.time} is confirmed.</p>
         <button onClick={() => setSubmitted(false)}>Book Another</button>
-        {/* Added navigation to success screen too */}
+        {/* navigation to success screen */}
         <button 
           onClick={() => navigate('/')} 
           style={{ ...buttonStyle, backgroundColor: '#6c757d', marginLeft: '10px' }}
@@ -70,17 +70,17 @@ const handleSubmit = async (e) => {
     <div style={{ maxWidth: '500px', margin: '40px auto', padding: '20px', border: '1px solid #ddd', borderRadius: '8px' }}>
       <h2 style={{ textAlign: 'center' }}>Schedule an Appointment</h2>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        
+        {/* Name label */}
         <label>
           Full Name:
           <input type="text" name="name" value={formData.name} onChange={handleChange} required style={inputStyle} />
         </label>
-
+        {/* Email label */}
         <label>
           Email:
           <input type="email" name="email" value={formData.email} onChange={handleChange} required style={inputStyle} />
         </label>
-
+        {/* Service dropdown */}
         <label>
           Service:
           <select name="service" value={formData.service} onChange={handleChange} style={inputStyle}>
@@ -100,7 +100,7 @@ const handleSubmit = async (e) => {
             <input type="time" name="time" value={formData.time} onChange={handleChange} required style={inputStyle} />
           </label>
         </div>
-
+        {/* Notes textarea */}
         <label>
           Notes (Optional):
           <textarea name="notes" value={formData.notes} onChange={handleChange} style={{ ...inputStyle, height: '80px' }} />
