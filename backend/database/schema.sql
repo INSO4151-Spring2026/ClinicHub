@@ -5,6 +5,13 @@
 -- =============================================================================
 
 -- =============================================================================
+-- EXTENSIONS
+-- Required for exclusion constraints involving scalar equality (e.g., INT WITH =)
+-- NOTE: May require elevated privileges depending on your Postgres setup.
+-- =============================================================================
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
+-- =============================================================================
 -- ROLES
 -- Simple lookup table for user permission levels
 -- =============================================================================
@@ -234,6 +241,25 @@ CREATE TABLE appointments (
         scheduled_end > scheduled_start
     )
 );
+
+-- Prevent overlapping appointments for a provider.
+-- Allows overlaps only when prior appointments are cancelled/no-show.
+ALTER TABLE appointments
+ADD CONSTRAINT ex_appt_no_overlap EXCLUDE USING gist (
+    provider_user_id
+    WITH
+        =,
+        tstzrange (
+            scheduled_start,
+            scheduled_end,
+            '[)'
+        )
+    WITH
+        &&
+)
+WHERE (
+        status NOT IN ('cancelled', 'no_show')
+    );
 
 CREATE INDEX idx_appt_patient_id ON appointments (patient_id);
 
