@@ -189,6 +189,8 @@ CREATE INDEX idx_cpt_code_id ON cpt (cpt_code_id);
 
 CREATE INDEX idx_cpt_service_date ON cpt (service_date);
 
+CREATE INDEX idx_cpt_revenue_report ON cpt (service_date, status) INCLUDE (total);
+
 -- =============================================================================
 -- DIAGNOSIS
 -- Diagnostic codes (e.g. ICD-10) linked to a CPT billing entry
