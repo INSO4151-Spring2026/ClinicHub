@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from app import db
 from app.models.patient import Patient
+from app.utils.decorators import require_auth, require_role
 from datetime import datetime
 import logging
 
@@ -13,6 +14,8 @@ patients = Blueprint("patients", __name__, url_prefix="/api/patients")
 # POST /api/patients - Create a new patient
 # -----------------------------------------------------------------------------
 @patients.route("", methods=["POST"])
+@require_auth
+@require_role("admin", "doctor", "nurse", "receptionist")
 def create_patient():
     """
     Create a new patient record
@@ -96,12 +99,14 @@ def create_patient():
 # GET /api/patients/:id - Get a specific patient by ID
 # -----------------------------------------------------------------------------
 @patients.route("/<int:patient_id>", methods=["GET"])
+@require_auth
+@require_role("admin", "doctor", "nurse", "receptionist")
 def get_patient(patient_id):
     """
     Retrieve a single patient by their ID
     """
     try:
-        patient = Patient.query.get(patient_id)
+        patient = db.session.get(Patient, patient_id)
 
         if not patient:
             return jsonify({"error": "Patient not found"}), 404
@@ -118,6 +123,8 @@ def get_patient(patient_id):
 # PUT /api/patients/:id - Update a patient
 # -----------------------------------------------------------------------------
 @patients.route("/<int:patient_id>", methods=["PUT"])
+@require_auth
+@require_role("admin", "doctor", "nurse")
 def update_patient(patient_id):
     """
     Update an existing patient record
@@ -135,7 +142,7 @@ def update_patient(patient_id):
     }
     """
     try:
-        patient = Patient.query.get(patient_id)
+        patient = db.session.get(Patient, patient_id)
 
         if not patient:
             return jsonify({"error": "Patient not found"}), 404
@@ -201,13 +208,15 @@ def update_patient(patient_id):
 # DELETE /api/patients/:id - Delete a patient
 # -----------------------------------------------------------------------------
 @patients.route("/<int:patient_id>", methods=["DELETE"])
+@require_auth
+@require_role("admin")
 def delete_patient(patient_id):
     """
     Delete a patient record
     Note: This will delete the patient record. In production, you may want to implement soft deletes instead.
     """
     try:
-        patient = Patient.query.get(patient_id)
+        patient = db.session.get(Patient, patient_id)
 
         if not patient:
             return jsonify({"error": "Patient not found"}), 404
@@ -231,6 +240,8 @@ def delete_patient(patient_id):
 # GET /api/patients - List all patients with pagination and search
 # -----------------------------------------------------------------------------
 @patients.route("", methods=["GET"])
+@require_auth
+@require_role("admin", "doctor", "nurse", "receptionist")
 def list_patients():
     """
     List all patients with pagination and optional search
