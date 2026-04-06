@@ -8,6 +8,7 @@ import Create_patient from './Create_patient'
 import Appointment_page from './Appointment_page'
 import Vitals_page from './Vitals_page'  
 import Plan_page from './Plan_page'
+import Reports_page from './Reports_page'
 
 
 // Home "/" 
@@ -31,6 +32,7 @@ const Home = ({ role, handleRoleChange }) => (
       <Link to="/plan"><button>Health Plans</button></Link>
       
       {/* These links only show up if the role matches */}
+      {role === 'Admin' && (<Link to="/reports"><button>Financial Reports</button></Link>)}
       {(role === 'Admin' || role === 'Doctor') && <Link to="/vitals"><button>Vitals</button></Link>}
       {(role === 'Admin' || role === 'Receptionist') && <Link to="/create-patient"><button>Create Patient</button></Link>}
       {role && <Link to="/appointment"><button>Appointments</button></Link>}
@@ -85,6 +87,15 @@ function App() {
           </ProtectedRoute>
         } 
       />
+      <Route 
+        path="/reports" 
+        element={
+          <ProtectedRoute role={role} allowedRoles={['Admin']}>
+            <Reports_page />
+          </ProtectedRoute>
+        } 
+      />
+
     </Routes>
   )
 }

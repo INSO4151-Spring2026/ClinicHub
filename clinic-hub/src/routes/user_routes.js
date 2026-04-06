@@ -3,6 +3,17 @@ const router = express.Router();
 import authorize from '../middleware/authorization_middleware.js';
 import ROLES from '../constants/roles.js';
 
+// import pg from 'pg';
+
+// // Setup database connection 
+// const pool = new pg.Pool({
+//   user: 'postgres',
+//   host: 'localhost',
+//   database: 'clinic_db',
+//   password: 'your_password',
+//   port: 5432,
+// });
+
 // 1. Admin Only: Manage System Users
 router.get('/admin/stats', authorize([ROLES.ADMIN]), (req, res) => {
   res.json({ message: "Welcome, Admin. Here are the hospital analytics." });
@@ -87,6 +98,58 @@ router.post('/login', (req, res) => {
     res.json({ token: 'mock-token-receptionist', role: ROLES.RECEPTIONIST });
   } else {
     res.status(401).json({ message: "Invalid email or password" });
+  }
+});
+// 8. Financial Reports (Admin Only) 
+router.get('/reports/daily-revenue', authorize([ROLES.ADMIN]), async (req, res) => {
+  const { date } = req.query;
+
+  if (!date) {
+    return res.status(400).json({ message: "Date parameter is required." });
+  }
+
+  console.log(`📊 Generating Report for: ${date}`);
+
+  try {
+    // db query
+    // const query = `
+    //   SELECT 
+    //     COUNT(*) as count,
+    //     COALESCE(SUM(subtotal), 0) as subtotal,
+    //     COALESCE(SUM(tax), 0) as tax,
+    //     COALESCE(SUM(total_revenue), 0) as total
+    //   FROM billing_records 
+    //   WHERE DATE(service_date) = $1
+    // `;
+    
+    // const result = await pool.query(query, [date]);
+    // const row = result.rows[0];
+
+    // Simulated Database Response (Replace with your pool.query later)
+    const result = {
+      date: date,
+      transaction_count: 5, // Example data
+      data: {
+        subtotal: 450.00,
+        tax: 31.50,
+        total_revenue: 481.50
+      }
+    };
+
+  // Send the structured JSON exactly how the React page expects it
+    res.json({
+      date: date,
+      transaction_count: parseInt(row.count),
+      data: {
+        subtotal: parseFloat(row.subtotal),
+        tax: parseFloat(row.tax),
+        total_revenue: parseFloat(row.total)
+      }
+    });
+
+  } catch (error) {
+    console.error("Internal Server Error:", error);
+    res.status(500).json({ message: "Error processing report logic." });
   }
 });
 export default router;

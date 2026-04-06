@@ -169,7 +169,7 @@ const handleSubmit = async (e) => {
           )}
         </div>
         {/* Submit Button and go back*/}
-        <button type="submit" style={{ marginTop: '24px', width: '100%', padding: '12px', background: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
+        <button type="submit" style={{ marginTop: '24px', width: '100%', padding: '12px', background: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
           Create Patient
         </button>
       </form>
