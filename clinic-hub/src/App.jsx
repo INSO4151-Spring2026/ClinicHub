@@ -3,12 +3,12 @@ import { Routes, Route, Link, Navigate } from 'react-router-dom'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
-import Login_page from './Login_page'
-import Create_patient from './Create_patient'
-import Appointment_page from './Appointment_page'
-import Vitals_page from './Vitals_page'  
-import Plan_page from './Plan_page'
-import Reports_page from './Reports_page'
+import Login_page from './pages/Login_page'
+import Create_patient from './pages/Create_patient'
+import Appointment_page from './pages/Appointment_page'
+import Vitals_page from './pages/Vitals_page'  
+import Plan_page from './pages/Plan_page'
+import Reports_page from './pages/Reports_page'
 
 
 // Home "/" 
