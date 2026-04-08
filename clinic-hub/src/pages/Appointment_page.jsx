@@ -109,7 +109,7 @@ const Appointment_page = () => {
         onClick={() => navigate('/')} 
         style={{ ...backButtonStyle, width: '100%', marginTop: '20px', marginLeft: '0' }}
       >
-        ← Cancel and Go Home
+         Cancel and Go Home
       </button>
     </div>
   );

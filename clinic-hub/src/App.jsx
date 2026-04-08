@@ -1,7 +1,5 @@
 import { useState } from 'react'
 import { Routes, Route, Link, Navigate } from 'react-router-dom' 
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
 import Login_page from './pages/Login_page'
 import Create_patient from './pages/Create_patient'
@@ -26,13 +24,9 @@ const Home = ({ role, handleRoleChange }) => (
     boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
   }}>
     
-    {/* Header Section */}
-    <header style={{ textAlign: 'center', marginBottom: '30px' }}>
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginBottom: '15px' }}>
-        <img src={viteLogo} alt="Vite logo" style={{ height: '50px' }} />
-        <img src={reactLogo} alt="React logo" style={{ height: '50px' }} />
-      </div>
-      <h1 style={{ color: '#222', margin: '0 0 10px 0' }}>Clinic Hub Management System</h1>
+    {/* Header Section*/}
+    <header style={{ textAlign: 'center', marginBottom: '30px', padding: '10px 0' }}>
+      <h1 style={{ color: '#222', margin: '0 0 10px 0', fontSize: '2.2rem' }}>Clinic Hub Management System</h1>
       <p style={{ color: '#666', fontSize: '1.1rem' }}>Secure Clinical Administration Portal</p>
     </header>
 
@@ -45,7 +39,6 @@ const Home = ({ role, handleRoleChange }) => (
 We propose a solution that can consolidate core clinic operations into a single, 
 cohesive platform to improve efficiency, 
 reduce administrative overhead, and enhance patient care. 
-
       </p>
     </section>
 
@@ -77,14 +70,14 @@ reduce administrative overhead, and enhance patient care.
       </div>
 
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-      
+  
         <Link to="/login" style={{ textDecoration: 'none' }}><button style={blueBtn}>Login Page</button></Link>
         
-     
+      
         <Link to="/plan" style={{ textDecoration: 'none' }}><button style={greyBtn}>Health Plans</button></Link>
         
         {role === 'Admin' && <Link to="/reports" style={{ textDecoration: 'none' }}><button style={greyBtn}>Financial Reports</button></Link>}
-        {(role === 'Admin' || role === 'Doctor') && <Link to="/vitals" style={{ textDecoration: 'none' }}><button style={greyBtn}>Vitals</button></Link>}
+        {(role === 'Admin' || role === 'Doctor') && <Link to="/vitals" style={{ textDecoration: 'none' }}><button style={greyBtn}>Vitals Entry</button></Link>}
         {(role === 'Admin' || role === 'Receptionist') && <Link to="/create-patient" style={{ textDecoration: 'none' }}><button style={greyBtn}>Create Patient</button></Link>}
         {role && <Link to="/appointment" style={{ textDecoration: 'none' }}><button style={greyBtn}>Appointments</button></Link>}
       </div>
