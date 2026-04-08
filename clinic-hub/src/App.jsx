@@ -104,7 +104,17 @@ reduce administrative overhead, and enhance patient care.
             Orlando G. Mercado Tellado,
             Cristian Barreras Tatsenko
           </li>
-          <li style={{ marginTop: '10px' }}><strong>Docs:</strong> <span style={{ color: '#007bff', cursor: 'pointer', textDecoration: 'underline' }}>View Documentation</span></li>
+<li>
+  <strong>Docs: </strong> 
+  <a 
+    href="https://docs.google.com/document/d/1nhnJKCCqy1WglL0vUUmTMAIHTmno4_g9t_rBls7df_8/edit?usp=sharing" 
+    target="_blank" 
+    rel="noopener noreferrer"
+    style={{ color: '#007bff', textDecoration: 'underline' }}
+  >
+    View Documentation
+  </a>
+</li>
         </ul>
       </section>
     </div>
