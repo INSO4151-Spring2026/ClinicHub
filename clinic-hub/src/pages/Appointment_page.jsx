@@ -20,7 +20,7 @@ const Appointment_page = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     const token = localStorage.getItem('token');
@@ -54,14 +54,9 @@ const handleSubmit = async (e) => {
       <div style={{ textAlign: 'center', padding: '50px' }}>
         <h2>Success! 🎉</h2>
         <p>Your appointment for {formData.service} on {formData.date} at {formData.time} is confirmed.</p>
-        <button onClick={() => setSubmitted(false)}>Book Another</button>
+        <button onClick={() => setSubmitted(false)} style={buttonStyle}>Book Another</button>
         {/* navigation to success screen */}
-        <button 
-          onClick={() => navigate('/')} 
-          style={{ ...buttonStyle, backgroundColor: '#6c757d', marginLeft: '10px' }}
-        >
-          Go Back Home
-        </button>
+        <button onClick={() => navigate('/')} style={backButtonStyle}>Go Back Home</button>
       </div>
     );
   }
@@ -100,7 +95,7 @@ const handleSubmit = async (e) => {
             <input type="time" name="time" value={formData.time} onChange={handleChange} required style={inputStyle} />
           </label>
         </div>
-        {/* Notes textarea */}
+        {/* Notes text area */}
         <label>
           Notes (Optional):
           <textarea name="notes" value={formData.notes} onChange={handleChange} style={{ ...inputStyle, height: '80px' }} />
@@ -112,15 +107,44 @@ const handleSubmit = async (e) => {
       {/* 3. Use navigate('/') on click */}
       <button 
         onClick={() => navigate('/')} 
-        style={{ width: '100%', marginTop: '10px', padding: '10px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+        style={{ ...backButtonStyle, width: '100%', marginTop: '20px', marginLeft: '0' }}
       >
-        Go Back Home
+        ← Cancel and Go Home
       </button>
     </div>
   );
 };
 
-const inputStyle = { width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' };
-const buttonStyle = { backgroundColor: '#28a745', color: 'white', padding: '10px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px' };
+// Styles 
+const inputStyle = { 
+    width: '100%', 
+    padding: '8px', 
+    marginTop: '5px', 
+    borderRadius: '4px', 
+    border: '1px solid #ccc', 
+    boxSizing: 'border-box' 
+};
+
+const buttonStyle = { 
+    backgroundColor: '#28a745', 
+    color: 'white', 
+    padding: '10px', 
+    border: 'none', 
+    borderRadius: '4px', 
+    cursor: 'pointer', 
+    fontSize: '16px' 
+};
+
+
+const backButtonStyle = { 
+    backgroundColor: '#6c757d', 
+    color: 'white', 
+    padding: '10px', 
+    border: 'none', 
+    borderRadius: '4px', 
+    cursor: 'pointer', 
+    fontSize: '16px',
+    marginLeft: '10px' 
+};
 
 export default Appointment_page;

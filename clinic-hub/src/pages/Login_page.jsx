@@ -48,7 +48,7 @@ function Login_page({ setRole }) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
+            style={inputStyle}
           />
         </div>
         {/* Password div */}
@@ -60,21 +60,54 @@ function Login_page({ setRole }) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
+            style={inputStyle}
           />
         </div>
         {/* Submit button and go back */}
-        <button type="submit" style={{ width: '100%', padding: '10px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+        <button type="submit" style={submitButtonStyle}>
           Login
         </button>
       </form>
-      <Link to="/">
-        <button style={{ width: '100%', marginTop: '10px', padding: '10px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+
+      {/*Go Back Home */}
+      <Link to="/" style={{ textDecoration: 'none' }}>
+        <button style={backButtonStyle}>
           Go Back Home
         </button>
       </Link>
     </div>
   )
 }
+
+
+const inputStyle = { 
+    width: '100%', 
+    padding: '8px', 
+    boxSizing: 'border-box' 
+};
+
+const submitButtonStyle = { 
+    width: '100%', 
+    padding: '10px', 
+    backgroundColor: '#007bff',
+    color: 'white', 
+    border: 'none', 
+    borderRadius: '4px', 
+    cursor: 'pointer',
+    fontSize: '16px',
+    fontWeight: 'bold'
+};
+
+const backButtonStyle = { 
+    width: '100%', 
+    marginTop: '10px', 
+    padding: '10px', 
+    backgroundColor: '#6c757d', 
+    color: 'white', 
+    border: 'none', 
+    borderRadius: '4px', 
+    cursor: 'pointer',
+    fontSize: '16px'
+};
 
 export default Login_page;

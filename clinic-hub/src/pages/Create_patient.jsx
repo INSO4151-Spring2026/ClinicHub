@@ -1,7 +1,9 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom' 
 
 function Create_patient() {
+  const navigate = useNavigate();
+  
   const [first_name, set_first_name] = useState('')
   const [last_name, set_last_name] = useState('')
   const [last_name_2, set_last_name_2] = useState('')
@@ -25,7 +27,7 @@ function Create_patient() {
     }
   }
 
-const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Using FormData to handle the text and the ID photo file
@@ -52,7 +54,6 @@ const handleSubmit = async (e) => {
       const response = await fetch('http://localhost:5000/api/patients', {
         method: 'POST',
         headers: {
-          
           'Authorization': `Bearer ${token}` 
         },
         body: formData,
@@ -60,7 +61,7 @@ const handleSubmit = async (e) => {
 
       if (response.ok) {
         alert("✅ Patient created successfully!");
-        // Resetting form or redirecting could go here
+        navigate('/'); // Use navigate here to move only after successful POST
       } else if (response.status === 403) {
         alert("🚫 Access Denied: You don't have permission to create patients.");
       } else {
@@ -168,19 +169,47 @@ const handleSubmit = async (e) => {
             </div>
           )}
         </div>
-        {/* Submit Button and go back*/}
-        <button type="submit" style={{ marginTop: '24px', width: '100%', padding: '12px', background: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
+        {/* Submit Button */}
+        <button type="submit" style={submitButtonStyle}>
           Create Patient
         </button>
       </form>
 
+      {/*  Go Back Home */}
       <Link to="/" style={{ textDecoration: 'none' }}>
-        <button style={{ display: 'block', width: '100%', marginTop: '10px', padding: '10px', background: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-         Go Back Home
+        <button style={backButtonStyle}>
+          Go Back Home
         </button>
       </Link>
     </div>
   )
 }
 
-export default Create_patient
+const submitButtonStyle = { 
+    marginTop: '24px', 
+    width: '100%', 
+    padding: '12px', 
+    background: '#28a745', 
+    color: 'white', 
+    border: 'none', 
+    borderRadius: '4px', 
+    cursor: 'pointer', 
+    fontWeight: 'bold',
+    fontSize: '16px'
+};
+
+const backButtonStyle = { 
+    display: 'block', 
+    width: '100%', 
+    marginTop: '10px', 
+    padding: '10px', 
+    background: '#6c757d', 
+    color: 'white', 
+    border: 'none', 
+    borderRadius: '4px', 
+    cursor: 'pointer',
+    textAlign: 'center',
+    fontSize: '16px'
+};
+
+export default Create_patient;

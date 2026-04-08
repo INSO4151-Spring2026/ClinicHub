@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom'; 
 
 const Reports_page = () => {
   const navigate = useNavigate();
@@ -17,7 +17,6 @@ const Reports_page = () => {
     setLoading(true);
 
     try {
-      // Hits your Node Middleware on Port 5000
       const response = await fetch(`http://localhost:5000/api/reports/daily-revenue?date=${selectedDate}`, {
         method: 'GET',
         headers: {
@@ -44,11 +43,11 @@ const Reports_page = () => {
   };
 
   return (
-    <div style={{ maxWidth: '500px', margin: '40px auto', padding: '20px', border: '1px solid #ddd', borderRadius: '8px' }}>
+    <div style={{ maxWidth: '500px', margin: '40px auto', padding: '20px', border: '1px solid #ddd', borderRadius: '8px', fontFamily: 'sans-serif' }}>
       <h2 style={{ textAlign: 'center' }}>Financial Revenue Report</h2>
       
       <form onSubmit={fetchReport} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        <label>
+        <label style={{ fontWeight: 'bold' }}>
           Transaction Date:
           <input 
             type="date" 
@@ -62,7 +61,7 @@ const Reports_page = () => {
         <button 
           type="submit" 
           disabled={loading} 
-          style={buttonStyle}
+          style={generateButtonStyle}
         >
           {loading ? 'Processing...' : 'Generate Report'}
         </button>
@@ -81,26 +80,17 @@ const Reports_page = () => {
         </div>
       )}
 
-      <button 
-        onClick={() => navigate('/')} 
-        style={{ 
-          width: '100%', 
-          marginTop: '10px', 
-          padding: '10px', 
-          backgroundColor: '#6c757d', 
-          color: 'white', 
-          border: 'none', 
-          borderRadius: '4px', 
-          cursor: 'pointer' 
-        }}
-      >
-        Go Back Home
-      </button>
+      {/* Go Back Home */}
+      <Link to="/" style={{ textDecoration: 'none' }}>
+        <button style={backButtonStyle}>
+          Go Back Home
+        </button>
+      </Link>
     </div>
   );
 };
 
-// Styles copied exactly from your Appointment_page
+// Standardized styles
 const inputStyle = { 
   width: '100%', 
   padding: '8px', 
@@ -110,14 +100,30 @@ const inputStyle = {
   boxSizing: 'border-box' 
 };
 
-const buttonStyle = { 
+const generateButtonStyle = { 
   backgroundColor: '#28a745', 
   color: 'white', 
   padding: '10px', 
   border: 'none', 
   borderRadius: '4px', 
   cursor: 'pointer', 
-  fontSize: '16px' 
+  fontSize: '16px',
+  fontWeight: 'bold',
+  width: '100%'
+};
+
+const backButtonStyle = { 
+  display: 'block', 
+  width: '100%', 
+  marginTop: '10px', 
+  padding: '10px', 
+  backgroundColor: '#6c757d', 
+  color: 'white', 
+  border: 'none', 
+  borderRadius: '4px', 
+  cursor: 'pointer',
+  fontSize: '16px',
+  textAlign: 'center'
 };
 
 export default Reports_page;
