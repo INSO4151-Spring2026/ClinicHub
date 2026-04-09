@@ -2,34 +2,39 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const Calendar_page = () => {
-  const [selectedDay, setSelectedDay] = useState(13);
-  const [monthIndex, setMonthIndex] = useState(3); // April
-  const currentYear = 2026;
+  const today = new Date();
+  const [selectedDay, setSelectedDay] = useState(today.getDate());
+  const [monthIndex, setMonthIndex] = useState(today.getMonth());
+  const [year, setYear] = useState(today.getFullYear());
 
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-  // Mock Data
+  // Mock data - In ClinicHub
   const appointments = [
-    { id: 1, month: 3, day: 12, time: "09:00 AM", patient: "John Doe", type: "Checkup" },
-    { id: 2, month: 3, day: 13, time: "08:30 AM", patient: "Jane Smith", type: "Follow-up" },
-    { id: 3, month: 3, day: 13, time: "09:15 AM", patient: "Bob Johnson", type: "X-Ray" },
-    { id: 4, month: 3, day: 13, time: "10:00 AM", patient: "Alice Wong", type: "Consult" },
-    { id: 5, month: 3, day: 13, time: "11:00 AM", patient: "Charlie Brown", type: "Dental" },
-    { id: 6, month: 3, day: 13, time: "01:00 PM", patient: "David Miller", type: "Checkup" },
-    { id: 7, month: 3, day: 13, time: "02:00 PM", patient: "Elena Rodriguez", type: "Vitals" },
-    { id: 8, month: 3, day: 13, time: "03:30 PM", patient: "Frank Wright", type: "Follow-up" },
-    { id: 9, month: 3, day: 13, time: "04:15 PM", patient: "Grace Lee", type: "Consult" },
+    { id: 1, month: 3, day: 12, year: 2026, time: "09:00 AM", patient: "John Doe", type: "Checkup" },
+    { id: 2, month: 3, day: 13, year: 2026, time: "08:30 AM", patient: "Jane Smith", type: "Follow-up" },
+    { id: 3, month: 3, day: 13, year: 2026, time: "09:15 AM", patient: "Bob Johnson", type: "X-Ray" },
+    { id: 4, month: 3, day: 13, year: 2026, time: "10:00 AM", patient: "Alice Wong", type: "Consult" },
+    { id: 5, month: 3, day: 13, year: 2026, time: "11:00 AM", patient: "Charlie Brown", type: "Dental" },
+    { id: 6, month: 3, day: 13, year: 2026, time: "01:00 PM", patient: "David Miller", type: "Checkup" },
   ];
 
-  const daysInMonth = new Date(currentYear, monthIndex + 1, 0).getDate();
-  const firstDayOfWeek = new Date(currentYear, monthIndex, 1).getDay();
+  const handleToday = () => {
+    setYear(today.getFullYear());
+    setMonthIndex(today.getMonth());
+    setSelectedDay(today.getDate());
+  };
 
-  // Always generate 42 cells (6 rows) to keep height perfectly consistent
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+  const firstDayOfWeek = new Date(year, monthIndex, 1).getDay();
+
   const calendarVisualGrid = [];
   for (let i = 0; i < firstDayOfWeek; i++) calendarVisualGrid.push(null);
   for (let i = 1; i <= daysInMonth; i++) calendarVisualGrid.push(i);
   while (calendarVisualGrid.length < 42) calendarVisualGrid.push(null);
+
+  const selectedAppts = appointments.filter(a => a.day === selectedDay && a.month === monthIndex && a.year === year);
 
   return (
     <div style={containerStyle}>
@@ -37,22 +42,34 @@ const Calendar_page = () => {
         <Link to="/" style={backLink}>← Dashboard</Link>
         <div style={headerFlex}>
           <h2 style={{ margin: 0 }}>Clinic Schedule</h2>
-          <div style={monthStepper}>
-            <button onClick={() => setMonthIndex(p => p === 0 ? 11 : p - 1)} style={navBtn}>‹</button>
-            <span style={monthDisplay}>{months[monthIndex]}</span>
-            <button onClick={() => setMonthIndex(p => p === 11 ? 0 : p + 1)} style={navBtn}>›</button>
+          
+          <div style={controlsGroup}>
+            <button onClick={handleToday} style={todayBtn}>Today</button>
+
+            {/* Month*/}
+            <div style={stepperContainer}>
+              <button onClick={() => setMonthIndex(p => p === 0 ? 11 : p - 1)} style={navBtn}>‹</button>
+              <span style={stepperDisplay}>{months[monthIndex]}</span>
+              <button onClick={() => setMonthIndex(p => p === 11 ? 0 : p + 1)} style={navBtn}>›</button>
+            </div>
+
+            {/* Year */}
+            <div style={stepperContainer}>
+              <button onClick={() => setYear(p => p - 1)} style={navBtn}>‹</button>
+              <span style={stepperDisplay}>{year}</span>
+              <button onClick={() => setYear(p => p + 1)} style={navBtn}>›</button>
+            </div>
           </div>
         </div>
       </div>
 
       <div style={layoutGrid}>
-        {/* CALENDAR SIDE */}
         <div style={cardStyle}>
           <div style={monthGrid}>
             {dayNames.map(day => <div key={day} style={dayHeader}>{day}</div>)}
             {calendarVisualGrid.map((dayNum, i) => {
               const isSelected = selectedDay === dayNum;
-              const hasAppt = dayNum && appointments.some(a => a.day === dayNum && a.month === monthIndex);
+              const hasAppt = dayNum && appointments.some(a => a.day === dayNum && a.month === monthIndex && a.year === year);
               return (
                 <div key={i} onClick={() => dayNum && setSelectedDay(dayNum)}
                   style={{
@@ -70,27 +87,32 @@ const Calendar_page = () => {
           </div>
         </div>
 
-        {/* AGENDA SIDE */}
-        <div style={{ ...cardStyle, display: 'grid', gridTemplateRows: 'auto 1fr auto' }}>
-          <h3 style={agendaHeader}>Agenda: {months[monthIndex]} {selectedDay}</h3>
+        <div style={{ ...cardStyle, position: 'relative' }}>
+          <div style={agendaHeaderContainer}>
+            <h3 style={{ margin: 0, fontSize: '15px' }}>
+              {months[monthIndex]} {selectedDay}, {year}
+            </h3>
+          </div>
           
-          <div style={apptListScrollable}>
-            {appointments.filter(a => a.day === selectedDay && a.month === monthIndex).length > 0 ? (
-              appointments.filter(a => a.day === selectedDay && a.month === monthIndex).map(appt => (
+          <div style={absoluteScrollArea}>
+            {selectedAppts.length > 0 ? (
+              selectedAppts.map(appt => (
                 <div key={appt.id} style={apptCard}>
                   <div style={timeSlot}>{appt.time}</div>
-                  <div style={{ flex: 1, fontSize: '14px' }}>
-                    <div style={{ fontWeight: '600' }}>{appt.patient}</div>
-                    <div style={{ fontSize: '12px', color: '#94a3b8' }}>{appt.type}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: '600', fontSize: '13px' }}>{appt.patient}</div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>{appt.type}</div>
                   </div>
                 </div>
               ))
             ) : (
-              <div style={emptyState}>No appointments.</div>
+              <div style={emptyState}>No appointments</div>
             )}
           </div>
 
-          <button style={actionBtn}>+ New Appointment</button>
+          <div style={agendaFooterContainer}>
+            <button style={actionBtn}>+ New Appointment</button>
+          </div>
         </div>
       </div>
     </div>
@@ -98,56 +120,33 @@ const Calendar_page = () => {
 };
 
 // --- STYLES ---
-const containerStyle = { padding: '40px', backgroundColor: '#020617', minHeight: '100vh', color: '#f8fafc' };
-const headerNav = { marginBottom: '20px' };
-const headerFlex = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' };
-const backLink = { textDecoration: 'none', color: '#3b82f6', fontSize: '14px' };
+const containerStyle = { padding: '30px', backgroundColor: '#020617', minHeight: '100vh', color: '#f8fafc', boxSizing: 'border-box' };
+const headerNav = { marginBottom: '15px' };
+const headerFlex = { display: 'flex', justifyContent: 'space-between', alignItems: 'center' };
+const backLink = { textDecoration: 'none', color: '#3b82f6', fontSize: '13px' };
 
-const layoutGrid = { 
-  display: 'grid', 
-  gridTemplateColumns: '1.2fr 1fr', 
-  gap: '24px', 
-  height: '500px', // HARD HEIGHT LOCK
-  alignItems: 'stretch' 
-};
+const controlsGroup = { display: 'flex', gap: '10px', alignItems: 'center' };
+const todayBtn = { backgroundColor: '#1e293b', border: '1px solid #334155', color: '#f8fafc', padding: '6px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' };
 
-const cardStyle = { 
-  backgroundColor: '#1e293b', 
-  padding: '20px', 
-  borderRadius: '16px', 
-  border: '1px solid #334155',
-  boxSizing: 'border-box',
-  overflow: 'hidden'
-};
+const stepperContainer = { display: 'flex', alignItems: 'center', backgroundColor: '#0f172a', borderRadius: '8px', border: '1px solid #334155' };
+const navBtn = { backgroundColor: 'transparent', border: 'none', color: '#3b82f6', fontSize: '18px', cursor: 'pointer', padding: '4px 12px' };
+const stepperDisplay = { minWidth: '80px', textAlign: 'center', fontSize: '12px', fontWeight: 'bold', borderLeft: '1px solid #334155', borderRight: '1px solid #334155', padding: '0 8px' };
 
-const monthGrid = { 
-  display: 'grid', 
-  gridTemplateColumns: 'repeat(7, 1fr)', 
-  gridTemplateRows: 'auto repeat(6, 1fr)', // FORCES 6 ROWS REGARDLESS OF MONTH
-  gap: '8px', 
-  height: '100%' 
-};
+const layoutGrid = { display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: '20px', height: '420px', maxWidth: '850px', margin: '20px auto', alignItems: 'start' };
+const cardStyle = { backgroundColor: '#1e293b', borderRadius: '12px', border: '1px solid #334155', height: '100%', overflow: 'hidden' };
 
-const dayHeader = { textAlign: 'center', color: '#64748b', fontSize: '12px', paddingBottom: '5px' };
-const dayCell = { borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' };
-const dotIndicator = { position: 'absolute', bottom: '6px', width: '5px', height: '5px', backgroundColor: '#3b82f6', borderRadius: '50%' };
+const monthGrid = { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gridTemplateRows: '25px repeat(6, 38px)', gap: '6px', padding: '15px' };
+const dayHeader = { textAlign: 'center', color: '#64748b', fontSize: '11px', fontWeight: 'bold' };
+const dayCell = { borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', aspectRatio: '1 / 1', maxWidth: '38px', margin: '0 auto', width: '100%', fontSize: '12px' };
+const dotIndicator = { position: 'absolute', bottom: '4px', width: '3px', height: '3px', backgroundColor: '#3b82f6', borderRadius: '50%' };
 
-const agendaHeader = { borderBottom: '1px solid #334155', paddingBottom: '15px', margin: 0 };
+const agendaHeaderContainer = { padding: '15px 20px', borderBottom: '1px solid #334155', position: 'absolute', top: 0, left: 0, right: 0, height: '50px', boxSizing: 'border-box', backgroundColor: '#1e293b', zIndex: 2 };
+const absoluteScrollArea = { position: 'absolute', top: '50px', bottom: '65px', left: 0, right: 0, overflowY: 'auto', padding: '15px 20px' };
+const agendaFooterContainer = { position: 'absolute', bottom: 0, left: 0, right: 0, height: '65px', padding: '12px 20px', borderTop: '1px solid #334155', backgroundColor: '#1e293b', zIndex: 2 };
 
-const apptListScrollable = { 
-  overflowY: 'auto', 
-  marginTop: '15px',
-  paddingRight: '8px',
-  scrollbarGutter: 'stable' 
-};
-
-const apptCard = { display: 'flex', alignItems: 'center', padding: '12px', backgroundColor: '#0f172a', borderRadius: '10px', marginBottom: '10px', border: '1px solid #334155' };
-const timeSlot = { flex: '0 0 80px', fontWeight: 'bold', color: '#3b82f6', fontSize: '13px' };
-const actionBtn = { width: '100%', padding: '12px', backgroundColor: '#3b82f6', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', marginTop: '10px', cursor: 'pointer' };
-
-const monthStepper = { display: 'flex', alignItems: 'center', backgroundColor: '#0f172a', borderRadius: '10px', border: '1px solid #334155' };
-const navBtn = { backgroundColor: 'transparent', border: 'none', color: '#3b82f6', fontSize: '20px', cursor: 'pointer', padding: '5px 15px' };
-const monthDisplay = { minWidth: '100px', textAlign: 'center', fontSize: '14px', fontWeight: 'bold' };
-const emptyState = { textAlign: 'center', color: '#64748b', marginTop: '60px', fontStyle: 'italic' };
+const apptCard = { display: 'flex', alignItems: 'center', padding: '8px', backgroundColor: '#0f172a', borderRadius: '8px', marginBottom: '8px', border: '1px solid #334155' };
+const timeSlot = { flex: '0 0 65px', fontWeight: 'bold', color: '#3b82f6', fontSize: '11px' };
+const actionBtn = { width: '100%', padding: '10px', backgroundColor: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' };
+const emptyState = { textAlign: 'center', color: '#64748b', marginTop: '30px', fontStyle: 'italic', fontSize: '12px' };
 
 export default Calendar_page;
