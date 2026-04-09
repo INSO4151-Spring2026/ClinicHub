@@ -7,6 +7,7 @@ import Appointment_page from './pages/Appointment_page'
 import Vitals_page from './pages/Vitals_page'  
 import Plan_page from './pages/Plan_page'
 import Reports_page from './pages/Reports_page'
+import Calendar_page from './pages/Calendar_page' // Added import
 
 // --- HOME COMPONENT ---
 const Home = ({ role, handleRoleChange }) => (
@@ -36,9 +37,8 @@ const Home = ({ role, handleRoleChange }) => (
     <section style={{ marginBottom: '30px' }}>
       <h3 style={{ color: '#444', marginBottom: '10px' }}>Project Description</h3>
       <p style={{ lineHeight: '1.6', fontSize: '16px', color: '#444' }}>
-We propose a solution that can consolidate core clinic operations into a single, 
-cohesive platform to improve efficiency, 
-reduce administrative overhead, and enhance patient care. 
+        We propose a solution that can consolidate core clinic operations into a single, 
+        cohesive platform to improve efficiency, reduce administrative overhead, and enhance patient care. 
       </p>
     </section>
 
@@ -70,11 +70,14 @@ reduce administrative overhead, and enhance patient care.
       </div>
 
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-  
+        {/* Login blue */}
         <Link to="/login" style={{ textDecoration: 'none' }}><button style={blueBtn}>Login Page</button></Link>
         
-      
+        {/* Other navigation grey */}
         <Link to="/plan" style={{ textDecoration: 'none' }}><button style={greyBtn}>Health Plans</button></Link>
+        
+        {/* New Calendar Link - Accessible to all roles for viewing schedule */}
+        <Link to="/calendar" style={{ textDecoration: 'none' }}><button style={greyBtn}>Schedule Calendar</button></Link>
         
         {role === 'Admin' && <Link to="/reports" style={{ textDecoration: 'none' }}><button style={greyBtn}>Financial Reports</button></Link>}
         {(role === 'Admin' || role === 'Doctor') && <Link to="/vitals" style={{ textDecoration: 'none' }}><button style={greyBtn}>Vitals Entry</button></Link>}
@@ -104,17 +107,17 @@ reduce administrative overhead, and enhance patient care.
             Orlando G. Mercado Tellado,
             Cristian Barreras Tatsenko
           </li>
-<li>
-  <strong>Docs: </strong> 
-  <a 
-    href="https://docs.google.com/document/d/1nhnJKCCqy1WglL0vUUmTMAIHTmno4_g9t_rBls7df_8/edit?usp=sharing" 
-    target="_blank" 
-    rel="noopener noreferrer"
-    style={{ color: '#007bff', textDecoration: 'underline' }}
-  >
-    View Documentation
-  </a>
-</li>
+          <li>
+            <strong>Docs: </strong> 
+            <a 
+              href="https://docs.google.com/document/d/1nhnJKCCqy1WglL0vUUmTMAIHTmno4_g9t_rBls7df_8/edit?usp=sharing" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ color: '#007bff', textDecoration: 'underline' }}
+            >
+              View Documentation
+            </a>
+          </li>
         </ul>
       </section>
     </div>
@@ -141,6 +144,7 @@ function App() {
       <Route path="/" element={<Home role={role} handleRoleChange={handleRoleChange} />} />
       <Route path="/login" element={<Login_page />} />
       <Route path="/plan" element={<Plan_page />} />
+      <Route path="/calendar" element={<Calendar_page />} /> {/* New Route */}
 
       <Route path="/vitals" element={
         <ProtectedRoute role={role} allowedRoles={['Admin', 'Doctor']}>
