@@ -56,7 +56,7 @@ const Appointment_page = () => {
         <p>Your appointment for {formData.service} on {formData.date} at {formData.time} is confirmed.</p>
         <button onClick={() => setSubmitted(false)} style={buttonStyle}>Book Another</button>
         {/* navigation to success screen */}
-        <button onClick={() => navigate('/')} style={backButtonStyle}>Go Back Home</button>
+        <button onClick={() => navigate('/calendar')} style={backButtonStyle}>Go Back to Calendar</button>
       </div>
     );
   }
@@ -106,10 +106,10 @@ const Appointment_page = () => {
 
       {/* 3. Use navigate('/') on click */}
       <button 
-        onClick={() => navigate('/')} 
+        onClick={() => navigate('/calendar')} 
         style={{ ...backButtonStyle, width: '100%', marginTop: '20px', marginLeft: '0' }}
       >
-         Cancel and Go Home
+          Cancel and Return to Calendar
       </button>
     </div>
   );
@@ -134,7 +134,6 @@ const buttonStyle = {
     cursor: 'pointer', 
     fontSize: '16px' 
 };
-
 
 const backButtonStyle = { 
     backgroundColor: '#6c757d', 
