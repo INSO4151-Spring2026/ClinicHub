@@ -39,12 +39,14 @@ def create_app(config_name="development"):
     from app.routes.patients import patients
     from app.routes.reports import reports
     from app.routes.appointments import appointments
+    
 
     app.register_blueprint(main)
     app.register_blueprint(patients)
     app.register_blueprint(auth)
     app.register_blueprint(reports)
     app.register_blueprint(appointments)
+  
 
     # -------------------------------------------------------------------------
     # Basic error handlers
