@@ -1,13 +1,15 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 function Plan_page() {
+  const navigate = useNavigate();
+  
   const [billingData, setBillingData] = useState({
-    member_id: '',      // Changed to snake_case
-    group_id: '',       // Changed to snake_case
-    plan_type: 'PPO',   // Changed to snake_case
-    carrier_name: '',   // Changed to snake_case
-    effective_date: '', // Changed to snake_case
+    member_id: '',      
+    group_id: '',       
+    plan_type: 'PPO',  
+    carrier_name: '',  
+    effective_date: '',
     copay: ''
   })
  // State for ID Photo
@@ -59,6 +61,7 @@ const handleSubmit = async (e) => {
         const result = await response.json();
         alert("✅ Billing information saved successfully!");
         console.log('Server Response:', result);
+        navigate('/'); 
       } else if (response.status === 403) {
         alert("🚫 Access Denied: Only Receptionists or Admins can save billing info.");
       } else {
@@ -70,29 +73,10 @@ const handleSubmit = async (e) => {
     }
   };
 
-  const inputStyle = {
-    width: '100%',
-    padding: '8px',
-    boxSizing: 'border-box',
-    borderRadius: '4px',
-    border: '1px solid #ccc'
-  }
-
-  const labelStyle = {
-    display: 'block',
-    marginBottom: '5px',
-    fontWeight: 'bold',
-    fontSize: '14px'
-  }
-
-  const groupStyle = {
-    marginBottom: '15px'
-  }
-
   return (
     <div style={{ maxWidth: '600px', margin: '40px auto', padding: '30px', border: '1px solid #ddd', borderRadius: '12px', fontFamily: 'Arial, sans-serif'}}>
       <h1 style={{ textAlign: 'center', color: '#333' }}>Health Plan Billing Details</h1>
-      <p style={{ textAlign: 'center', color: '#666', marginBottom: '25px' }}>Enter the information exactly as it appears on your insurance card.</p>
+      <p style={{ textAlign: 'center', color: '#666', marginBottom: '25px' }}>Enter the information exactly as it appears on the insurance card.</p>
       
       <form onSubmit={handleSubmit}>
         {/* Insurance Carrier */}
@@ -210,18 +194,17 @@ const handleSubmit = async (e) => {
               <p style={{ fontSize: '11px', color: '#888', marginTop: '5px' }}>{id_photo.name}</p>
             </div>
           )}
-            
         </div>
+
         {/*Save and back button */}
-        
         <label style={{ display: 'block', marginBottom: '4px' }}></label>
-        <button type="submit" style={{ width: '100%', padding: '12px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>
+        <button type="submit" style={saveButtonStyle}>
           Save Billing Information
         </button>
       </form>
 
       <Link to="/" style={{ textDecoration: 'none' }}>
-        <button style={{ width: '100%', marginTop: '12px', padding: '10px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+        <button style={backButtonStyle}>
             Go Back Home
         </button>
       </Link>
@@ -229,4 +212,48 @@ const handleSubmit = async (e) => {
   )
 }
 
-export default Plan_page
+// Consolidating your styles
+const inputStyle = {
+  width: '100%',
+  padding: '8px',
+  boxSizing: 'border-box',
+  borderRadius: '4px',
+  border: '1px solid #ccc'
+}
+
+const labelStyle = {
+  display: 'block',
+  marginBottom: '5px',
+  fontWeight: 'bold',
+  fontSize: '14px'
+}
+
+const groupStyle = {
+  marginBottom: '15px'
+}
+
+const saveButtonStyle = { 
+  width: '100%', 
+  padding: '12px', 
+  backgroundColor: '#28a745', 
+  color: 'white', 
+  border: 'none', 
+  borderRadius: '4px', 
+  cursor: 'pointer', 
+  fontSize: '16px', 
+  fontWeight: 'bold' 
+};
+
+const backButtonStyle = { 
+  width: '100%', 
+  marginTop: '12px', 
+  padding: '10px', 
+  backgroundColor: '#6c757d', 
+  color: 'white', 
+  border: 'none', 
+  borderRadius: '4px', 
+  cursor: 'pointer',
+  fontSize: '16px'
+};
+
+export default Plan_page;
