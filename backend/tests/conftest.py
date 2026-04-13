@@ -7,12 +7,13 @@ Each test function gets a fresh database via function-scoped fixtures.
 import sys
 import os
 import pytest
-from datetime import date
+from datetime import date, datetime, timezone, timedelta
 
 # Ensure the backend root is on sys.path so imports resolve correctly
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from app import create_app, db as _db
+from app.models.appointment import Appointment
 from app.models.role import Role
 from app.models.user import User
 from app.models.patient import Patient
@@ -163,3 +164,47 @@ def sample_patient(app):
     _db.session.add(patient)
     _db.session.commit()
     return patient
+
+
+# ---------------------------------------------------------------------------
+# Appointment fixtures
+# ---------------------------------------------------------------------------
+
+# A fixed future reference point so all appointment datetimes are consistent
+_APPT_BASE = datetime(2026, 6, 1, 9, 0, 0, tzinfo=timezone.utc)
+
+
+@pytest.fixture
+def nurse_token(app, nurse_user):
+    return generate_access_token(nurse_user.user_id)
+
+
+@pytest.fixture
+def nurse_auth_headers(nurse_token):
+    return {"Authorization": f"Bearer {nurse_token}"}
+
+
+@pytest.fixture
+def receptionist_token(app, receptionist_user):
+    return generate_access_token(receptionist_user.user_id)
+
+
+@pytest.fixture
+def receptionist_auth_headers(receptionist_token):
+    return {"Authorization": f"Bearer {receptionist_token}"}
+
+
+@pytest.fixture
+def sample_appointment(app, sample_patient, doctor_user):
+    """A single scheduled appointment (doctor → Jane Doe, 09:00–09:30 UTC on 2026-06-01)."""
+    appt = Appointment(
+        patient_id=sample_patient.patient_id,
+        provider_user_id=doctor_user.user_id,
+        scheduled_start=_APPT_BASE,
+        scheduled_end=_APPT_BASE + timedelta(minutes=30),
+        status="scheduled",
+        reason="Annual check-up",
+    )
+    _db.session.add(appt)
+    _db.session.commit()
+    return appt
