@@ -30,7 +30,12 @@ venv\Scripts\activate
 3.
 pip install -r requirements.txt
 4.
-# Format: postgresql://user:password@localhost:port/database_name
-SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:clinichub2026@localhost:5432/clinichub'
+SECRET_KEY=your-super-secret-key
+FLASK_ENV=development
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=clinichub
+DB_USER=postgres
+DB_PASSWORD=clinichub2026
 5.
 python run.py
