@@ -126,12 +126,22 @@ def receptionist_user(app):
 
 @pytest.fixture
 def admin_token(app, admin_user):
-    return generate_access_token(admin_user.user_id)
+    return generate_access_token(admin_user.user_id, admin_user.role.name)
 
 
 @pytest.fixture
 def doctor_token(app, doctor_user):
-    return generate_access_token(doctor_user.user_id)
+    return generate_access_token(doctor_user.user_id, doctor_user.role.name)
+
+
+@pytest.fixture
+def nurse_token(app, nurse_user):
+    return generate_access_token(nurse_user.user_id, nurse_user.role.name)
+
+
+@pytest.fixture
+def receptionist_token(app, receptionist_user):
+    return generate_access_token(receptionist_user.user_id, receptionist_user.role.name)
 
 
 @pytest.fixture
@@ -142,6 +152,16 @@ def auth_headers(admin_token):
 @pytest.fixture
 def doctor_auth_headers(doctor_token):
     return {"Authorization": f"Bearer {doctor_token}"}
+
+
+@pytest.fixture
+def nurse_auth_headers(nurse_token):
+    return {"Authorization": f"Bearer {nurse_token}"}
+
+
+@pytest.fixture
+def receptionist_auth_headers(receptionist_token):
+    return {"Authorization": f"Bearer {receptionist_token}"}
 
 
 # ---------------------------------------------------------------------------
@@ -170,28 +190,7 @@ def sample_patient(app):
 # Appointment fixtures
 # ---------------------------------------------------------------------------
 
-# A fixed future reference point so all appointment datetimes are consistent
 _APPT_BASE = datetime(2026, 6, 1, 9, 0, 0, tzinfo=timezone.utc)
-
-
-@pytest.fixture
-def nurse_token(app, nurse_user):
-    return generate_access_token(nurse_user.user_id)
-
-
-@pytest.fixture
-def nurse_auth_headers(nurse_token):
-    return {"Authorization": f"Bearer {nurse_token}"}
-
-
-@pytest.fixture
-def receptionist_token(app, receptionist_user):
-    return generate_access_token(receptionist_user.user_id)
-
-
-@pytest.fixture
-def receptionist_auth_headers(receptionist_token):
-    return {"Authorization": f"Bearer {receptionist_token}"}
 
 
 @pytest.fixture
