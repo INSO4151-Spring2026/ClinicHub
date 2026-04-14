@@ -12,48 +12,58 @@ const Calendar_page = () => {
 
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-useEffect(() => {
-  const fetchAppointments = async () => {
-    const token = localStorage.getItem('token'); // Get the token from login
-    
-    try {
-      const response = await fetch('http://localhost:5000/api/appointments', {
-        headers: {
-          'Authorization': `Bearer ${token}` // Add the security header
-        }
-      });
-      const rawData = await response.json();
+
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      const token = localStorage.getItem('token'); // Get the token from login
       
-      // We must transform the date string "2026-04-13" into numbers
-      // so your filter (a.day === selectedDay) actually works.
-      const formattedData = rawData.map(appt => {
-        const d = new Date(appt.appointment_date);
-        return {
-          id: appt.id,
-          time: appt.appointment_time,
-          patient: appt.patient_name,
-          type: appt.reason,
-          // Extract the numbers for the calendar logic:
-          day: d.getDate() + 1, // +1 often needed due to UTC/Local mismatch
-          month: d.getMonth(),
-          year: d.getFullYear()
-        };
-      });
+      try {
+        const response = await fetch('http://localhost:5000/api/appointments', {
+          headers: {
+            'Authorization': `Bearer ${token}` // Add the security header
+          }
+        });
 
-      setAppointments(formattedData);
-    } catch (err) {
-      console.error("Error loading appointments:", err);
-    }
-  };
+        if (!response.ok) throw new Error("Failed to fetch");
 
-  fetchAppointments();
-}, []);
+        const rawData = await response.json();
+        
+        // Transform the date string into a local Date object to extract day/month/year
+        const formattedData = rawData.map(appt => {
+          // Adding T12:00:00 prevents timezone shifts from moving the date back one day
+          const d = new Date(`${appt.appointment_date}T12:00:00`);
+          
+          return {
+            id: appt.id,
+            time: appt.appointment_time,
+            patient: appt.patient_name,
+            type: appt.reason,
+            // Extract the numbers for the calendar comparison logic:
+            day: d.getDate(), 
+            month: d.getMonth(),
+            year: d.getFullYear()
+          };
+        });
+
+        console.log("Formatted Appointments:", formattedData); 
+        setAppointments(formattedData);
+      } catch (err) {
+        console.error("Error loading appointments:", err);
+      }
+    };
+
+    fetchAppointments();
+  }, []);
 
   const handleRemove = async (id) => {
     if (window.confirm("Are you sure you want to remove this appointment?")) {
       try {
+        const token = localStorage.getItem('token');
         const response = await fetch(`http://localhost:5000/api/appointments/${id}`, {
           method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
         });
         if (response.ok) {
           setAppointments(appointments.filter(appt => appt.id !== id));
@@ -77,6 +87,7 @@ useEffect(() => {
   for (let i = 1; i <= daysInMonth; i++) calendarVisualGrid.push(i);
   while (calendarVisualGrid.length < 42) calendarVisualGrid.push(null);
 
+  // Filter based on the day clicked in the UI
   const selectedAppts = appointments.filter(a => 
     a.day === selectedDay && a.month === monthIndex && a.year === year
   );
@@ -108,6 +119,7 @@ useEffect(() => {
             {dayNames.map(day => <div key={day} style={dayHeader}>{day}</div>)}
             {calendarVisualGrid.map((dayNum, i) => {
               const isSelected = selectedDay === dayNum;
+              // hasAppt determines if a blue dot shows up on the specific date cell
               const hasAppt = dayNum && appointments.some(a => a.day === dayNum && a.month === monthIndex && a.year === year);
               return (
                 <div key={i} onClick={() => dayNum && setSelectedDay(dayNum)}

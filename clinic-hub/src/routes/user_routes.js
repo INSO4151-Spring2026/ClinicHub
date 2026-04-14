@@ -33,19 +33,23 @@ router.get('/patient/:id/records', authorize([ROLES.DOCTOR, ROLES.ADMIN]), async
 });
 
 // --- 3. APPOINTMENTS (Receptionist, Doctor, Admin) ---
-// --- GET ALL APPOINTMENTS (Bridge to Flask) ---
+
 router.get('/appointments', authorize([ROLES.RECEPTIONIST, ROLES.DOCTOR, ROLES.ADMIN]), async (req, res) => {
   try {
     const response = await fetch(`${FLASK_URL}/appointments`, {
       method: 'GET',
       headers: { 
-        'Authorization': req.headers.authorization // Passes the Bearer Token to Flask
+        'Authorization': req.headers.authorization 
       }
     });
+    
     const data = await response.json();
-    res.status(response.status).json(data);
+    
+    // Ensure 'data' is an Array []. 
+    // If Flask sends { appointments: [...] }, you must send data.appointments
+    res.status(response.status).json(data); 
   } catch (err) {
-    res.status(502).json({ message: "Flask service unreachable" });
+    res.status(502).json({ message: "Flask unreachable" });
   }
 });
 router.post('/appointments', authorize([ROLES.RECEPTIONIST, ROLES.DOCTOR, ROLES.ADMIN]), async (req, res) => {
@@ -57,6 +61,19 @@ router.post('/appointments', authorize([ROLES.RECEPTIONIST, ROLES.DOCTOR, ROLES.
         'Authorization': req.headers.authorization 
       },
       body: JSON.stringify(req.body)
+    });
+    const data = await response.json();
+    res.status(response.status).json(data);
+  } catch (err) {
+    res.status(502).json({ message: "Flask service unreachable" });
+  }
+});
+// --- 3.5 DELETE APPOINTMENT ---
+router.delete('/appointments/:id', authorize([ROLES.RECEPTIONIST, ROLES.DOCTOR, ROLES.ADMIN]), async (req, res) => {
+  try {
+    const response = await fetch(`${FLASK_URL}/appointments/${req.params.id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': req.headers.authorization }
     });
     const data = await response.json();
     res.status(response.status).json(data);

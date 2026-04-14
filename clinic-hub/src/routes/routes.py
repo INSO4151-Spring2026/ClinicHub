@@ -3,10 +3,13 @@ from .auth import generate_access_token
 
 api_bp = Blueprint('api', __name__)
 
+# --- GLOBAL IN-MEMORY DATABASE ---
+# This starts empty. It will only show dots once you POST an appointment.
+appointments_db = []
+
 # --- 1. ADMIN ONLY: ANALYTICS ---
 @api_bp.route('/admin/stats', methods=['GET'])
 def admin_stats():
-    # In production, you'd query the DB for total patients, doctors, etc.
     return jsonify({
         "message": "Welcome, Admin. Here are the hospital analytics.",
         "stats": {
@@ -28,36 +31,53 @@ def get_medical_records(patient_id):
         "message": "Accessing sensitive medical history..."
     }), 200
 
-# --- 3. APPOINTMENTS (All Staff) ---
+# --- 3. APPOINTMENTS ---
+
 @api_bp.route('/appointments', methods=['GET'])
 def get_appointments():
-    # This matches the names your Postman 'POST' uses
-    return jsonify([
-        {
-            "id": 1,
-            "patient_name": "John Doe",
-            "appointment_date": "2026-04-13", # Today's date
-            "appointment_time": "10:30 AM",
-            "reason": "Checkup"
-        }
-    ]), 200
+    # Returns the actual data added via the POST route
+    
+    return jsonify(appointments_db), 200 
+
 @api_bp.route('/appointments', methods=['POST'])
 def create_appointment():
     data = request.json
-    # Logic to check for double-booking would go here
+    
+    # Create a new appointment object with a unique ID
+    new_appt = {
+        "id": len(appointments_db) + 1,
+        "patient_name": data.get('patient_name'),
+        "appointment_date": data.get('appointment_date'), # Expects "YYYY-MM-DD"
+        "appointment_time": data.get('appointment_time'),
+        "reason": data.get('reason')
+    }
+    
+    # Save to the global list
+    appointments_db.append(new_appt)
+    
     return jsonify({
         "message": "Appointment confirmed!",
-        "appointment": data
+        "appointment": new_appt
     }), 201
 
-# --- 4. VITALS SUBMISSION (Doctor & Admin) ---
+@api_bp.route('/appointments/<int:appt_id>', methods=['DELETE'])
+def delete_appointment(appt_id):
+    global appointments_db
+    original_length = len(appointments_db)
+    appointments_db = [a for a in appointments_db if a.get('id') != appt_id]
+    
+    if len(appointments_db) < original_length:
+        return jsonify({"message": "Appointment deleted successfully"}), 200
+    return jsonify({"message": "Appointment not found"}), 404
+
+# --- 4. VITALS SUBMISSION ---
 @api_bp.route('/vitals', methods=['POST'])
 def submit_vitals():
     data = request.json
     print(f"Vitals received: {data}")
     return jsonify({"message": "Vitals saved to patient record."}), 201
 
-# --- 5. BILLING (Receptionist & Admin) ---
+# --- 5. BILLING ---
 @api_bp.route('/billing', methods=['POST'])
 def process_billing():
     data = request.json
@@ -67,7 +87,7 @@ def process_billing():
         "carrier": data.get('carrierName')
     }), 201
 
-# --- 6. CREATE NEW PATIENT (Receptionist & Admin) ---
+# --- 6. CREATE NEW PATIENT ---
 @api_bp.route('/patients', methods=['POST'])
 def create_patient():
     data = request.json
@@ -96,7 +116,7 @@ def login():
     
     return jsonify({"message": "Invalid credentials"}), 401
 
-# --- 8. FINANCIAL REPORTS (Admin Only) ---
+# --- 8. FINANCIAL REPORTS ---
 @api_bp.route('/reports/daily-revenue', methods=['GET'])
 def daily_revenue():
     date = request.args.get('date')
