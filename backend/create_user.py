@@ -49,4 +49,15 @@ with app.app_context():
         print("Receptionist user created.")
 
     db.session.commit()
-    print("Database sync complete!")
+   
+
+    doc = User(
+    role_id=3, # Assuming 3 is 'doctor' in your roles table
+    email="doctor@clinic.com",
+    first_name="Dr.",
+    last_name="House"
+)
+doc.set_password("123")
+db.session.add(doc)
+print("Database sync complete!")
+db.session.commit()
