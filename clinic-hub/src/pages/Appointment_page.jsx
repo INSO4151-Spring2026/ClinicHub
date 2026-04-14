@@ -25,6 +25,17 @@ const Appointment_page = () => {
 
     const token = localStorage.getItem('token');
 
+    // --- DATA MAPPING FIX ---
+    // This keeps your local state names but translates them for the backend
+    const payload = {
+      patient_name: formData.name,
+      appointment_date: formData.date,
+      appointment_time: formData.time,
+      reason: formData.service,
+      email: formData.email,
+      notes: formData.notes
+    };
+
     try {
       const response = await fetch('http://localhost:5000/api/appointments', {
         method: 'POST',
@@ -32,11 +43,11 @@ const Appointment_page = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}` 
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload), // Send the translated payload
       });
 
       if (response.ok) {
-        console.log('Appointment Booked:', formData);
+        console.log('Appointment Booked:', payload);
         setSubmitted(true);
       } else if (response.status === 403) {
         alert("🚫 Access Denied: You don't have permission to book appointments.");
@@ -45,7 +56,7 @@ const Appointment_page = () => {
       }
     } catch (err) {
       console.error("Connection error:", err);
-      alert("❌ Connection Failed: Is your Node server running on port 5000?");
+      alert("❌ Connection Failed.");
     }
   };
 
@@ -55,7 +66,6 @@ const Appointment_page = () => {
         <h2>Success! 🎉</h2>
         <p>Your appointment for {formData.service} on {formData.date} at {formData.time} is confirmed.</p>
         <button onClick={() => setSubmitted(false)} style={buttonStyle}>Book Another</button>
-        {/* navigation to success screen */}
         <button onClick={() => navigate('/calendar')} style={backButtonStyle}>Go Back to Calendar</button>
       </div>
     );
@@ -65,17 +75,17 @@ const Appointment_page = () => {
     <div style={{ maxWidth: '500px', margin: '40px auto', padding: '20px', border: '1px solid #ddd', borderRadius: '8px' }}>
       <h2 style={{ textAlign: 'center' }}>Schedule an Appointment</h2>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        {/* Name label */}
+        
         <label>
           Full Name:
           <input type="text" name="name" value={formData.name} onChange={handleChange} required style={inputStyle} />
         </label>
-        {/* Email label */}
+        
         <label>
           Email:
           <input type="email" name="email" value={formData.email} onChange={handleChange} required style={inputStyle} />
         </label>
-        {/* Service dropdown */}
+        
         <label>
           Service:
           <select name="service" value={formData.service} onChange={handleChange} style={inputStyle}>
@@ -95,7 +105,7 @@ const Appointment_page = () => {
             <input type="time" name="time" value={formData.time} onChange={handleChange} required style={inputStyle} />
           </label>
         </div>
-        {/* Notes text area */}
+
         <label>
           Notes (Optional):
           <textarea name="notes" value={formData.notes} onChange={handleChange} style={{ ...inputStyle, height: '80px' }} />
@@ -104,7 +114,6 @@ const Appointment_page = () => {
         <button type="submit" style={buttonStyle}>Confirm Booking</button>
       </form>
 
-      {/* 3. Use navigate('/') on click */}
       <button 
         onClick={() => navigate('/calendar')} 
         style={{ ...backButtonStyle, width: '100%', marginTop: '20px', marginLeft: '0' }}
@@ -115,7 +124,7 @@ const Appointment_page = () => {
   );
 };
 
-// Styles 
+// --- STYLES ---
 const inputStyle = { 
     width: '100%', 
     padding: '8px', 
