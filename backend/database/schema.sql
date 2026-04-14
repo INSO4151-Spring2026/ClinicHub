@@ -275,6 +275,34 @@ CREATE INDEX idx_appt_provider_date ON appointments (
 );
 
 -- =============================================================================
+-- INVOICES
+-- Represents a finalized bill for an appointment / CPT record
+-- =============================================================================
+CREATE TABLE invoices (
+    invoice_id SERIAL PRIMARY KEY,
+
+    appointment_id INT NOT NULL REFERENCES appointments (appointment_id) ON DELETE CASCADE,
+    cpt_id INT NOT NULL REFERENCES cpt (cpt_id) ON DELETE RESTRICT,
+
+    patient_id INT NOT NULL REFERENCES patients (patient_id) ON DELETE RESTRICT,
+
+    status VARCHAR(20) NOT NULL DEFAULT 'unpaid'
+        CHECK (status IN ('unpaid', 'paid')),
+
+    issued_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    paid_at TIMESTAMPTZ,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    -- Prevent duplicate invoices for same appointment
+    CONSTRAINT uq_invoice_appointment UNIQUE (appointment_id)
+);
+
+CREATE INDEX idx_invoices_patient_id ON invoices (patient_id);
+CREATE INDEX idx_invoices_status ON invoices (status);
+
+-- =============================================================================
 -- MEDICAL_RECORDS
 -- Clinical notes and treatment plans written per visit
 -- A patient accumulates many records over time

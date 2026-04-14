@@ -38,11 +38,13 @@ def create_app(config_name="development"):
     from app.routes.auth_routes import auth
     from app.routes.patients import patients
     from app.routes.appointments import appointments
+    from app.routes.invoice_routes import invoices
 
     app.register_blueprint(main)
     app.register_blueprint(patients)
     app.register_blueprint(auth)
     app.register_blueprint(appointments)
+    app.register_blueprint(invoices)
 
     # -------------------------------------------------------------------------
     # Basic error handlers
