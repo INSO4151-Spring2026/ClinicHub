@@ -1,11 +1,12 @@
 from flask import Blueprint, request, jsonify
-from .auth import generate_access_token 
+from datetime import datetime, timezone, timedelta
+# These imports now work thanks to the sys.path bridge in app.py
+from app import db
+from app.models.appointment import Appointment
+from app.utils.jwt_handler import generate_access_token
+
 
 api_bp = Blueprint('api', __name__)
-
-# --- GLOBAL IN-MEMORY DATABASE ---
-# This starts empty. It will only show dots once you POST an appointment.
-appointments_db = []
 
 # --- 1. ADMIN ONLY: ANALYTICS ---
 @api_bp.route('/admin/stats', methods=['GET'])
@@ -31,44 +32,74 @@ def get_medical_records(patient_id):
         "message": "Accessing sensitive medical history..."
     }), 200
 
-# --- 3. APPOINTMENTS ---
-
+# --- 3. APPOINTMENTS (Now using Database) ---
 @api_bp.route('/appointments', methods=['GET'])
 def get_appointments():
-    # Returns the actual data added via the POST route
+    try:
+        # Fetch all records from the SQLite database
+        appointments = Appointment.query.all()
+        # Convert the database objects into a list of dictionaries
+        return jsonify([appt.to_dict() for appt in appointments]), 200
+    except Exception as e:
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
     
-    return jsonify(appointments_db), 200 
-
 @api_bp.route('/appointments', methods=['POST'])
 def create_appointment():
-    data = request.json
-    
-    # Create a new appointment object with a unique ID
-    new_appt = {
-        "id": len(appointments_db) + 1,
-        "patient_name": data.get('patient_name'),
-        "appointment_date": data.get('appointment_date'), # Expects "YYYY-MM-DD"
-        "appointment_time": data.get('appointment_time'),
-        "reason": data.get('reason')
-    }
-    
-    # Save to the global list
-    appointments_db.append(new_appt)
-    
-    return jsonify({
-        "message": "Appointment confirmed!",
-        "appointment": new_appt
-    }), 201
+    data = request.get_json()
 
+    # VALIDATION CHECK: Ensure required keys exist
+    required_fields = ['patient_id', 'provider_user_id', 'appointment_date', 'reason']
+    missing = [field for field in required_fields if field not in data]
+    
+    if missing:
+        return jsonify({
+            "error": "Missing Data",
+            "message": f"The following fields are required: {', '.join(missing)}"
+        }), 400
+
+    try:
+        # TIMEZONE-AWARE PARSING
+        start_time = datetime.fromisoformat(data['appointment_date']).replace(tzinfo=timezone.utc)
+        end_time = start_time + timedelta(minutes=30)
+
+        # 3. CONFLICT CHECK 
+        conflict = Appointment.check_conflict(
+            provider_user_id=data['provider_user_id'],
+            scheduled_start=start_time,
+            scheduled_end=end_time
+        )
+
+        if conflict:
+            return jsonify({"error": "This time slot is already booked."}), 409
+
+        # CREATE THE RECORD
+        new_appt = Appointment(
+            patient_id=data['patient_id'],
+            provider_user_id=data['provider_user_id'],
+            scheduled_start=start_time,
+            scheduled_end=end_time,
+            reason=data['reason'],
+            notes=data.get('notes', ''), # .get() is safer for optional fields
+            status="scheduled"
+        )
+
+        db.session.add(new_appt)
+        db.session.commit()
+        return jsonify(new_appt.to_dict()), 201
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Server Error: {e}")
+        return jsonify({"error": "Internal Server Error", "details": str(e)}), 500
+    
 @api_bp.route('/appointments/<int:appt_id>', methods=['DELETE'])
 def delete_appointment(appt_id):
-    global appointments_db
-    original_length = len(appointments_db)
-    appointments_db = [a for a in appointments_db if a.get('id') != appt_id]
-    
-    if len(appointments_db) < original_length:
-        return jsonify({"message": "Appointment deleted successfully"}), 200
-    return jsonify({"message": "Appointment not found"}), 404
+    appt = Appointment.query.filter_by(appointment_id=appt_id).first()
+    if appt:
+        db.session.delete(appt)
+        db.session.commit()
+        return jsonify({"message": "Deleted"}), 200
+    return jsonify({"message": "Not found"}), 404
 
 # --- 4. VITALS SUBMISSION ---
 @api_bp.route('/vitals', methods=['POST'])
@@ -111,7 +142,8 @@ def login():
 
     if email in users and password == "123":
         role = users[email]
-        token = generate_access_token(1, role)
+        # Fixed: now calling the correctly imported generate_access_token
+        token = generate_access_token(1, role) 
         return jsonify({"token": token, "role": role, "message": "Success"}), 200
     
     return jsonify({"message": "Invalid credentials"}), 401

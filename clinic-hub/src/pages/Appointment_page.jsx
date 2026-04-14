@@ -20,19 +20,26 @@ const Appointment_page = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
     e.preventDefault();
-
     const token = localStorage.getItem('token');
 
-    // --- DATA MAPPING FIX ---
-    // This keeps your local state names but translates them for the backend
+    // 1. COMBINE DATE AND TIME
+    // The backend model uses 'scheduled_start' (DateTime). 
+    // We combine your separate date and time fields into one ISO string.
+    const startDateTime = `${formData.date}T${formData.time}:00`;
+
+    // 2. DATA MAPPING FOR BACKEND MODEL
     const payload = {
-      patient_name: formData.name,
-      appointment_date: formData.date,
-      appointment_time: formData.time,
+      // These IDs are required by your model. 
+      // For now, we use 1 as a placeholder until you add patient/provider selection.
+      patient_id: 1, 
+      provider_user_id: 1, 
+      
+      // Match the model's 'scheduled_start' column
+      appointment_date: startDateTime, 
+      
       reason: formData.service,
-      email: formData.email,
       notes: formData.notes
     };
 
@@ -43,16 +50,16 @@ const Appointment_page = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}` 
         },
-        body: JSON.stringify(payload), // Send the translated payload
+        body: JSON.stringify(payload),
       });
 
+      const result = await response.json();
+
       if (response.ok) {
-        console.log('Appointment Booked:', payload);
         setSubmitted(true);
-      } else if (response.status === 403) {
-        alert("🚫 Access Denied: You don't have permission to book appointments.");
       } else {
-        alert("⚠️ Error: Could not save appointment.");
+        // Show the specific error from Flask (e.g., conflict or missing field)
+        alert(`⚠️ Error: ${result.error || "Could not save appointment."}`);
       }
     } catch (err) {
       console.error("Connection error:", err);
@@ -63,7 +70,7 @@ const Appointment_page = () => {
   if (submitted) {
     return (
       <div style={{ textAlign: 'center', padding: '50px' }}>
-        <h2>Success! 🎉</h2>
+        <h2>Success! </h2>
         <p>Your appointment for {formData.service} on {formData.date} at {formData.time} is confirmed.</p>
         <button onClick={() => setSubmitted(false)} style={buttonStyle}>Book Another</button>
         <button onClick={() => navigate('/calendar')} style={backButtonStyle}>Go Back to Calendar</button>
