@@ -1,54 +1,40 @@
 import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
+import jwt from 'jsonwebtoken';
 import userRoutes from './routes/user_routes.js'; 
 
 const app = express();
 const upload = multer();
+const JWT_SECRET = "your_shared_secret_key"; 
 
 app.use(express.json()); 
-
 app.use(cors({
-  origin: 'http://localhost:5173', 
-  allowedHeaders: ['Content-Type', 'Authorization'], 
+  origin: 'http://localhost:5173',
+  allowedHeaders: ['Content-Type', 'Authorization'],
   methods: ['GET', 'POST', 'PUT', 'DELETE']
 }));
 
-// token verification and role extraction, then attach to req.user
-
-const MOCK_TOKENS = {
-  'mock-token-admin': { id: 1, name: 'Alice', role: 'Admin' },
-  'mock-token-doctor': { id: 2, name: 'Dr. Smith', role: 'Doctor' },
-  'mock-token-receptionist': { id: 3, name: 'Bob', role: 'Receptionist' }
-};
-
+// JWT verification middleware
 app.use((req, res, next) => {
   const authHeader = req.headers.authorization;
-
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    // user not identified
-    req.user = null; 
+    req.user = null;
     return next();
   }
 
-  // Extract the string after "Bearer "
-  const token = authHeader.split(' ')[1]; 
-  
-  // Look up the user in our mock database
-  const user = MOCK_TOKENS[token];
-
-  if (user) {
-    req.user = user; // Attach the user object to the request
-    console.log(`✅ Authenticated as: ${user.role}`);
-  } else {
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = { id: decoded.user_id, role: decoded.role };
+  } catch (err) {
     req.user = null;
-    console.log(`❌ Invalid Token: ${token}`);
   }
-
   next();
 });
 
-app.use('/api',upload.any(), userRoutes);
+// Multer handles the parsing before it hits the routes
+app.use('/api', upload.any(), userRoutes);
 
 const PORT = 5000;
-app.listen(PORT, () => console.log(`🚀 Server is running on http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Node Server: http://localhost:${PORT}`));

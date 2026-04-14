@@ -9,3 +9,12 @@ Run node server
 
 cd clinic_hub
 node src/server.js
+
+
+to run all pages and servers
+cd clinic_hub
+npm run start-all
+
+
+inetegration jwt 
+python -m pytest test_jwt_integration.py
