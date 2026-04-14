@@ -18,3 +18,19 @@ npm run start-all
 
 inetegration jwt 
 python -m pytest test_jwt_integration.py
+
+
+DB:
+1. 
+docker
+docker run --name ClinicHub -e POSTGRES_PASSWORD=clinichub2026 -e POSTGRES_DB=clinichub -p 5432:5432 -d postgres
+2.
+python -m venv venv
+venv\Scripts\activate
+3.
+pip install -r requirements.txt
+4.
+# Format: postgresql://user:password@localhost:port/database_name
+SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:clinichub2026@localhost:5432/clinichub'
+5.
+python run.py

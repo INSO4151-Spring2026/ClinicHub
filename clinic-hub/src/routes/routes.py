@@ -29,6 +29,18 @@ def get_medical_records(patient_id):
     }), 200
 
 # --- 3. APPOINTMENTS (All Staff) ---
+@api_bp.route('/appointments', methods=['GET'])
+def get_appointments():
+    # This matches the names your Postman 'POST' uses
+    return jsonify([
+        {
+            "id": 1,
+            "patient_name": "John Doe",
+            "appointment_date": "2026-04-13", # Today's date
+            "appointment_time": "10:30 AM",
+            "reason": "Checkup"
+        }
+    ]), 200
 @api_bp.route('/appointments', methods=['POST'])
 def create_appointment():
     data = request.json

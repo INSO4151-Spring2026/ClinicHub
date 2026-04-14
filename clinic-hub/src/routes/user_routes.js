@@ -33,6 +33,21 @@ router.get('/patient/:id/records', authorize([ROLES.DOCTOR, ROLES.ADMIN]), async
 });
 
 // --- 3. APPOINTMENTS (Receptionist, Doctor, Admin) ---
+// --- GET ALL APPOINTMENTS (Bridge to Flask) ---
+router.get('/appointments', authorize([ROLES.RECEPTIONIST, ROLES.DOCTOR, ROLES.ADMIN]), async (req, res) => {
+  try {
+    const response = await fetch(`${FLASK_URL}/appointments`, {
+      method: 'GET',
+      headers: { 
+        'Authorization': req.headers.authorization // Passes the Bearer Token to Flask
+      }
+    });
+    const data = await response.json();
+    res.status(response.status).json(data);
+  } catch (err) {
+    res.status(502).json({ message: "Flask service unreachable" });
+  }
+});
 router.post('/appointments', authorize([ROLES.RECEPTIONIST, ROLES.DOCTOR, ROLES.ADMIN]), async (req, res) => {
   try {
     const response = await fetch(`${FLASK_URL}/appointments`, {

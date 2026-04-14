@@ -12,13 +12,42 @@ const Calendar_page = () => {
 
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+useEffect(() => {
+  const fetchAppointments = async () => {
+    const token = localStorage.getItem('token'); // Get the token from login
+    
+    try {
+      const response = await fetch('http://localhost:5000/api/appointments', {
+        headers: {
+          'Authorization': `Bearer ${token}` // Add the security header
+        }
+      });
+      const rawData = await response.json();
+      
+      // We must transform the date string "2026-04-13" into numbers
+      // so your filter (a.day === selectedDay) actually works.
+      const formattedData = rawData.map(appt => {
+        const d = new Date(appt.appointment_date);
+        return {
+          id: appt.id,
+          time: appt.appointment_time,
+          patient: appt.patient_name,
+          type: appt.reason,
+          // Extract the numbers for the calendar logic:
+          day: d.getDate() + 1, // +1 often needed due to UTC/Local mismatch
+          month: d.getMonth(),
+          year: d.getFullYear()
+        };
+      });
 
-  useEffect(() => {
-    fetch('http://localhost:5000/api/appointments')
-      .then(res => res.json())
-      .then(data => setAppointments(data))
-      .catch(err => console.error("Error loading appointments:", err));
-  }, []);
+      setAppointments(formattedData);
+    } catch (err) {
+      console.error("Error loading appointments:", err);
+    }
+  };
+
+  fetchAppointments();
+}, []);
 
   const handleRemove = async (id) => {
     if (window.confirm("Are you sure you want to remove this appointment?")) {
