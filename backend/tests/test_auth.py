@@ -6,7 +6,8 @@ Tests for authentication endpoints:
   POST /api/refresh
 """
 import pytest
-
+import jwt
+from datetime import datetime, timedelta, timezone
 
 class TestLogin:
     def test_login_valid_credentials(self, client, admin_user):
@@ -18,6 +19,8 @@ class TestLogin:
         data = res.get_json()
         assert "access_token" in data
         assert "refresh_token" in data
+        # Ensure role is returned in the response as well
+        assert data.get("role") == "admin"
 
     def test_login_wrong_password(self, client, admin_user):
         res = client.post("/api/login", json={
@@ -93,11 +96,13 @@ class TestProfile:
         assert res.status_code == 403
 
     def test_profile_with_expired_token(self, client, app, admin_user):
-        import jwt
-        from datetime import datetime, timedelta, timezone
-
+        # FIXED: Added "role": "admin" to the payload
         expired_token = jwt.encode(
-            {"user_id": admin_user.user_id, "exp": datetime.now(timezone.utc) - timedelta(seconds=1)},
+            {
+                "user_id": admin_user.user_id, 
+                "role": admin_user.role.name,
+                "exp": datetime.now(timezone.utc) - timedelta(seconds=1)
+            },
             app.config["SECRET_KEY"],
             algorithm="HS256",
         )
@@ -126,7 +131,6 @@ class TestRefresh:
         assert "error" in res.get_json()
 
     def test_refresh_missing_body(self, client):
-        # No JSON body — get_json() returns None, route should return 400
         res = client.post("/api/refresh", json=None, content_type="application/json")
         assert res.status_code == 400
 
@@ -135,9 +139,7 @@ class TestRefresh:
         assert res.status_code == 403
 
     def test_refresh_with_expired_token(self, client, app, admin_user):
-        import jwt
-        from datetime import datetime, timedelta, timezone
-
+        # Refresh tokens typically don't need 'role' inside, but we match the user_id
         expired_token = jwt.encode(
             {"user_id": admin_user.user_id, "exp": datetime.now(timezone.utc) - timedelta(seconds=1)},
             app.config["SECRET_KEY"],

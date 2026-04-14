@@ -30,7 +30,8 @@ class ProductionConfig(Config):
 class TestingConfig(Config):
     TESTING = True
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+    # Change this to use the PostgreSQL URI from the base Config class
+    SQLALCHEMY_DATABASE_URI = Config.SQLALCHEMY_DATABASE_URI 
     SECRET_KEY = "test-secret-key-that-is-long-enough-for-hs256"
 
 # Active config based on environment

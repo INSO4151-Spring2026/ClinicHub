@@ -1,11 +1,9 @@
 from flask import Blueprint, request, jsonify
 from app import db
-from app.utils.jwt_handler import verify_token
+from app.utils.jwt_handler import verify_token, generate_access_token, generate_refresh_token
 from app.models.user import User
-from app.utils.jwt_handler import generate_access_token, generate_refresh_token
 
 auth = Blueprint("auth", __name__)
-
 
 @auth.route("/api/login", methods=["POST"])
 def login():
@@ -17,10 +15,15 @@ def login():
     if not user or not user.check_password(password):
         return jsonify({"error": "Invalid email or password"}), 401
 
-    access_token = generate_access_token(user.user_id)
+    
+    access_token = generate_access_token(user.user_id, user.role.name)
     refresh_token = generate_refresh_token(user.user_id)
 
-    return jsonify({"access_token": access_token, "refresh_token": refresh_token})
+    return jsonify({
+        "access_token": access_token, 
+        "refresh_token": refresh_token,
+        "role": user.role.name  # Returning role helps the frontend routing
+    })
 
 
 @auth.route("/api/logout", methods=["POST"])
@@ -46,9 +49,18 @@ def profile():
         return jsonify({"error": "Invalid or expired token"}), 403
 
     # Optionally, return user info
+    # Using db.session.get() is the modern way to fetch by PK
     user = db.session.get(User, payload["user_id"])
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
     return jsonify(
-        {"message": "Access granted", "user_id": user.user_id, "email": user.email}
+        {
+            "message": "Access granted", 
+            "user_id": user.user_id, 
+            "email": user.email,
+            "role": user.role.name
+        }
     )
 
 
@@ -68,6 +80,15 @@ def refresh():
     if not payload:
         return jsonify({"error": "Invalid or expired refresh token"}), 403
 
-    # Generate a new access token
-    new_access_token = generate_access_token(payload["user_id"])
+    # Fetch user to get their role for the new access token
+    user = db.session.get(User, payload["user_id"])
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    new_access_token = generate_access_token(user.user_id, user.role.name)
     return jsonify({"access_token": new_access_token})
+
+@auth.route("/api/register", methods=["POST"])
+def register():
+    # This is the logic that Postman needs to talk to
+    return jsonify({"message": "Registration route is live!"}), 201
