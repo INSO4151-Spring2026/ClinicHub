@@ -96,7 +96,297 @@ A scheduling engine designed to manage provider availability.
 
 ---
 
-# ClinicHub – Scheduling & Billing API Documentation
+# Authentication & Patients – System Overview
+
+---
+
+## 🔐 Authentication System
+
+The authentication system in ClinicHub is built using JSON Web Tokens (JWT) to securely identify and authorize users across the application. When a user logs in, the system validates their credentials and generates an access token (and optionally a refresh token). This token contains encoded user information such as the user ID and role, and is used to authenticate subsequent API requests.
+
+### How It Works
+
+- Users authenticate using their email and password
+- On successful login:
+  - The system generates a JWT access token
+  - The token includes:
+    - `user_id`
+    - `role`
+    - expiration timestamp
+- The token is signed using the server’s secret key
+- The client must include this token in future requests
+
+### Token Usage
+
+- Tokens are sent in the request header:
+
+Authorization: Bearer <access_token>
+
+- The backend verifies:
+- Token signature
+- Expiration
+- Embedded user data
+
+### Role-Based Access Control (RBAC)
+
+ClinicHub enforces permissions using roles stored in the database:
+
+- `admin`
+- `doctor`
+- `nurse`
+- `receptionist`
+
+Each request is validated using:
+- Authentication middleware (`require_auth`)
+- Role-based authorization (`require_role`)
+
+This ensures that only authorized users can access specific endpoints.
+
+### Key Security Features
+
+- Passwords are stored as hashed values (bcrypt)
+- Tokens are stateless (no database storage required)
+- Expired or invalid tokens are rejected
+- Sensitive routes require authentication
+
+---
+
+## 🧑‍⚕️ Patients System
+
+The patients module manages all patient-related data, including personal, contact, and emergency information. Each patient record is uniquely identified and can be linked to appointments, medical records, CPT entries, and invoices.
+
+### Core Functionality
+
+- Store patient demographic information
+- Maintain contact and emergency details
+- Link patients to appointments and medical history
+- Serve as the central reference for all clinical and billing operations
+
+### Patient Data Includes
+
+- First and last name
+- Date of birth
+- Sex (with predefined valid values)
+- Email and phone number
+- Address
+- Emergency contact information
+- Timestamps for record creation and updates
+
+### Data Integrity Rules
+
+- Email must be unique (if provided)
+- Required fields:
+- First name
+- Last name
+- Date of birth
+- Sex must match allowed values:
+- male
+- female
+- other
+- prefer_not_to_say
+
+### Relationships
+
+Patients are linked to multiple system components:
+
+- **Appointments** → scheduling visits
+- **Medical Records** → clinical history
+- **CPT Records** → procedures performed
+- **Invoices** → billing and payments
+
+This makes the patient entity a central part of the system’s workflow.
+
+---
+
+## 🔄 System Integration
+
+- Authentication ensures only authorized users can access patient data
+- Patient records are required before creating appointments
+- All billing (CPT + invoices) is tied back to a patient
+- Audit logs may track access to patient data for compliance
+
+---
+
+# Authentication & Patients API Endpoints
+
+---
+
+## 🔐 Authentication Endpoints (`/api`)
+
+---
+
+### 1. Login
+
+Authenticates a user and returns JWT tokens.
+
+**Request**
+```json
+POST /api/login
+
+{
+  "email": "admin@clinichub.com",
+  "password": "admin123"
+}
+
+Response (200)
+
+{
+  "message": "Login successful",
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+### 2. Protected Route Example
+
+Used to verify authentication via token.
+
+**Request**
+```json
+GET /api/protected
+Authorization: Bearer <access_token>
+
+Response (200)
+
+{
+  "message": "Access granted",
+  "user_id": 1,
+  "role": "admin"
+}
+```
+Authentication Error Examples
+
+```json
+401 Unauthorized (Missing Token)
+
+{
+  "error": "Authorization token is missing"
+}
+
+401 Unauthorized (Invalid Token)
+
+{
+  "error": "Invalid or expired token"
+}
+```
+🧑‍⚕️ Patients Endpoints (/api/patients)
+### 1. Create Patient
+
+**Request**
+```json
+POST /api/patients
+
+{
+  "first_name": "John",
+  "last_name": "Doe",
+  "dob": "1990-05-10",
+  "sex": "male",
+  "email": "john.doe@email.com",
+  "phone": "7871234567",
+  "address": "123 Main St",
+  "emergency_contact_name": "Jane Doe",
+  "emergency_contact_phone": "7877654321"
+}
+
+Response (201)
+
+{
+  "message": "Patient created successfully",
+  "patient": {
+    "patient_id": 1,
+    "first_name": "John",
+    "last_name": "Doe",
+    "dob": "1990-05-10",
+    "sex": "male"
+  }
+}
+```
+### 2. Get All Patients
+
+**Request**
+```json
+GET /api/patients
+
+Response (200)
+
+[
+  {
+    "patient_id": 1,
+    "first_name": "John",
+    "last_name": "Doe",
+    "dob": "1990-05-10",
+    "sex": "male"
+  }
+]
+```
+### 3. Get Patient by ID
+
+**Request**
+```json
+GET /api/patients/1
+
+Response (200)
+
+{
+  "patient_id": 1,
+  "first_name": "John",
+  "last_name": "Doe",
+  "dob": "1990-05-10",
+  "sex": "male"
+}
+```
+### 4. Update Patient
+
+**Request**
+```json
+PUT /api/patients/1
+
+{
+  "phone": "7879998888",
+  "address": "456 Updated St"
+}
+
+Response (200)
+
+{
+  "message": "Patient updated successfully",
+  "patient": {
+    "patient_id": 1,
+    "phone": "7879998888",
+    "address": "456 Updated St"
+  }
+}
+```
+### 5. Delete Patient
+
+**Request**
+```json
+DELETE /api/patients/1
+
+Response (200)
+
+{
+  "message": "Patient deleted successfully"
+}
+```
+Patient Error Examples
+```json
+404 Not Found
+{
+  "error": "Patient not found"
+}
+400 Bad Request
+{
+  "error": "Missing required field: first_name"
+}
+409 Conflict (Duplicate Email)
+{
+  "error": "Email already exists"
+}
+```
+
+---
+
+# ClinicHub – Scheduling & Billing - System Overview
 
 ## Overview
 
@@ -194,6 +484,214 @@ The invoices module manages billing records generated from completed appointment
 - Invalid status values are rejected for both appointments and invoices
 - All time inputs must follow ISO-8601 format
 
+---
+
+# API Request & Response Examples
+
+---
+
+## Appointments API Examples
+
+---
+
+### 1. Create Appointment
+
+**Request**
+```json
+POST /api/appointments
+
+{
+  "patient_id": 1,
+  "provider_user_id": 2,
+  "scheduled_start": "2026-04-15T10:00:00",
+  "scheduled_end": "2026-04-15T10:30:00",
+  "status": "scheduled",
+  "reason": "General checkup",
+  "notes": "First visit"
+}
+
+Response (201)
+
+{
+  "message": "Appointment created successfully",
+  "appointment": {
+    "appointment_id": 1,
+    "patient_id": 1,
+    "provider_user_id": 2,
+    "scheduled_start": "2026-04-15T10:00:00",
+    "scheduled_end": "2026-04-15T10:30:00",
+    "status": "scheduled"
+  }
+}
+
+```
+
+### 2. Update Appointment (Mark as Completed → triggers CPT creation)
+
+**Request**
+```json
+PUT /api/appointments/1
+
+{
+  "status": "completed"
+}
+
+Response (200)
+
+{
+  "message": "Appointment updated successfully",
+  "appointment": {
+    "appointment_id": 1,
+    "status": "completed",
+    "cpt_id": 5
+  }
+}
+```
+
+### 3. Get Appointments (List)
+
+**Request**
+```json
+GET /api/appointments?page=1&per_page=10&status=scheduled
+
+Response (200)
+
+{
+  "appointments": [
+    {
+      "appointment_id": 1,
+      "patient_id": 1,
+      "provider_user_id": 2,
+      "status": "scheduled"
+    }
+  ],
+  "pagination": {
+    "total": 1,
+    "page": 1,
+    "per_page": 10,
+    "has_next": false,
+    "has_prev": false
+  }
+}
+```
+### 4. Cancel Appointment
+
+**Request**
+```json
+DELETE /api/appointments/1
+
+Response (200)
+
+{
+  "message": "Appointment cancelled successfully",
+  "appointment_id": 1
+}
+```
+
+
+Invoices API Examples
+---
+### 1. Create Invoice (from completed appointment)
+
+**Request**
+```json
+POST /api/invoices
+
+{
+  "appointment_id": 1
+}
+
+Response (201)
+
+{
+  "message": "Invoice created successfully",
+  "invoice": {
+    "invoice_id": 1,
+    "appointment_id": 1,
+    "patient_id": 1,
+    "cpt_id": 5,
+    "status": "unpaid"
+  }
+}
+```
+
+### 2. Update Invoice Status (Pay Invoice)
+
+**Request**
+```json
+PUT /api/invoices/1
+
+{
+  "status": "paid"
+}
+
+Response (200)
+
+{
+  "message": "Invoice updated",
+  "invoice": {
+    "invoice_id": 1,
+    "status": "paid",
+    "paid_at": "2026-04-14T22:30:00"
+  }
+}
+```
+### 3. Update Invoice Status (Mark Unpaid)
+
+**Request**
+```json
+PUT /api/invoices/1
+
+{
+  "status": "unpaid"
+}
+
+Response (200)
+
+{
+  "message": "Invoice updated",
+  "invoice": {
+    "invoice_id": 1,
+    "status": "unpaid",
+    "paid_at": null
+  }
+}
+```
+### 4. List Invoices
+
+**Request**
+```json
+GET /api/invoices
+
+Response (200)
+
+[
+  {
+    "invoice_id": 1,
+    "appointment_id": 1,
+    "patient_id": 1,
+    "cpt_id": 5,
+    "status": "paid"
+  }
+]
+```
+
+Error Response Examples
+---
+```json
+404 Not Found
+{
+  "error": "Appointment not found"
+}
+400 Bad Request
+{
+  "error": "Appointment must be completed"
+}
+409 Conflict
+{
+  "error": "Invoice already exists"
+}
+```
 ---
 
 ## 🎯 Project Goals
