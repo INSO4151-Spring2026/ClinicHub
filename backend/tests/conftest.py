@@ -121,27 +121,31 @@ def receptionist_user(app):
 
 
 # ---------------------------------------------------------------------------
-# Token / header fixtures
+# Token / header fixtures 
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
 def admin_token(app, admin_user):
-    return generate_access_token(admin_user.user_id, admin_user.role.name)
+
+    return generate_access_token(admin_user)
 
 
 @pytest.fixture
 def doctor_token(app, doctor_user):
-    return generate_access_token(doctor_user.user_id, doctor_user.role.name)
+    
+    return generate_access_token(doctor_user)
 
 
 @pytest.fixture
 def nurse_token(app, nurse_user):
-    return generate_access_token(nurse_user.user_id, nurse_user.role.name)
+    
+    return generate_access_token(nurse_user)
 
 
 @pytest.fixture
 def receptionist_token(app, receptionist_user):
-    return generate_access_token(receptionist_user.user_id, receptionist_user.role.name)
+   
+    return generate_access_token(receptionist_user)
 
 
 @pytest.fixture

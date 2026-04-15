@@ -85,7 +85,7 @@ def refresh():
     if not user:
         return jsonify({"error": "User not found"}), 404
 
-    new_access_token = generate_access_token(user.user_id, user.role.name)
+    new_access_token = generate_access_token(user)
     return jsonify({"access_token": new_access_token})
 
 @auth.route("/api/register", methods=["POST"])
