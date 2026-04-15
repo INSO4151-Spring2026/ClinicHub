@@ -51,9 +51,16 @@ def require_role(*roles):
             if not user:
                 return jsonify({"error": "Not authenticated"}), 401
 
+            # Fetch the role
             role = db.session.get(Role, user.role_id)
-            if not role or role.name not in roles:
-                return jsonify({"error": "Forbidden"}), 403
+            
+            # DEBUG PRINT: This will tell you exactly what is in the DB
+            role_name = role.name if role else "No Role Found"
+            print(f"[RBAC Check] User: {user.email} | Role in DB: {role_name} | Required: {roles}")
+
+            # Check if role exists and if the name matches (case-insensitive)
+            if not role or not any(r.lower() == role.name.lower() for r in roles):
+                return jsonify({"error": "Forbidden: Insufficient permissions"}), 403
 
             return f(*args, **kwargs)
         return decorated
