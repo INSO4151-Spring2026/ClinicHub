@@ -20,7 +20,7 @@ function Login_page({ setRole }) {
       
       if (response.ok) {
         // Save to localStorage
-        localStorage.setItem('token', data.token);
+        localStorage.setItem('token', data.access_token);
         localStorage.setItem('role', data.role);
         
         // FIX 3: Update state and redirect

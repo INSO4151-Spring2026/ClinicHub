@@ -10,7 +10,7 @@ const router = express.Router();
 const FLASK_BASE = 'http://localhost:5002';
 
 // --- 1. ADMIN ONLY: ANALYTICS ---
-router.get('/admin/stats', authorize(['admin']), async (req, res) => {
+router.get('/admin/stats', authorize([ROLES.ADMIN]), async (req, res) => {
   try {
     const response = await fetch(`${FLASK_BASE}/api/admin/stats`, {
       headers: { 'Authorization': req.headers.authorization }
