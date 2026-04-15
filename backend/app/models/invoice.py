@@ -47,9 +47,4 @@ class Invoice(db.Model):
             "issued_at": self.issued_at.isoformat() if self.issued_at else None,
             "paid_at": self.paid_at.isoformat() if self.paid_at else None
         }
-
-        # OPTIONAL: include amount dynamically from CPT
-        if include_amount and self.cpt:
-            data["amount"] = float(self.cpt.total)
-
         return data

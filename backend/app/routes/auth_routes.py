@@ -17,8 +17,8 @@ def login():
     if not user or not user.check_password(password):
         return jsonify({"error": "Invalid email or password"}), 401
 
-    access_token = generate_access_token(user.user_id)
-    refresh_token = generate_refresh_token(user.user_id)
+    access_token = generate_access_token(user)
+    refresh_token = generate_refresh_token(user)
 
     return jsonify({"access_token": access_token, "refresh_token": refresh_token})
 

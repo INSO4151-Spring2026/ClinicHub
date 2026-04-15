@@ -15,6 +15,8 @@ from app import db
 from app.models.appointment import Appointment, VALID_STATUSES
 from app.models.patient import Patient
 from app.models.user import User
+from app.models.cpt import CPT
+from app.models.cpt_code import CPTCode
 from app.utils.decorators import require_auth, require_role
 from datetime import datetime, timezone
 import logging
@@ -354,6 +356,31 @@ def update_appointment(appointment_id):
 
         if "status" in data:
             appt.status = data["status"]
+
+        db.session.flush()  # ensures status is persisted in transaction state
+
+        # 2. Only THEN trigger side effects
+        if appt.status == "completed" and not appt.cpt_id:
+
+            default_cpt_code = CPTCode.query.filter_by(code="99213").first()
+
+            if not default_cpt_code:
+                return jsonify({"error": "Default CPT code not found"}), 500
+
+            cpt = CPT(
+                patient_id=appt.patient_id,
+                cpt_code_id=default_cpt_code.cpt_code_id,
+                service_date=appt.scheduled_start.date(),
+                status="draft",
+                quantity=1,
+                subtotal=default_cpt_code.default_price,
+                tax=0
+            )
+
+            db.session.add(cpt)
+            db.session.flush()
+
+            appt.cpt_id = cpt.cpt_id
         if "reason" in data:
             appt.reason = data["reason"]
         if "notes" in data:
