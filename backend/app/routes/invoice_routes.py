@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from app import db
 from app.models.invoice import Invoice
 from app.models.appointment import Appointment
-#from app.models.cpt import CPT  # adjust name if different
+from app.utils.decorators import require_auth, require_role
 from datetime import datetime
 import logging
 
@@ -11,6 +11,8 @@ logger = logging.getLogger(__name__)
 invoices = Blueprint("invoices", __name__, url_prefix="/api/invoices")
 
 @invoices.route("", methods=["POST"])
+@require_auth
+@require_role("admin", "doctor", "receptionist")
 def create_invoice():
     try:
         data = request.get_json()
@@ -61,6 +63,8 @@ def create_invoice():
         return jsonify({"error": "Failed to create invoice"}), 500
     
 @invoices.route("/<int:invoice_id>", methods=["PUT"])
+@require_auth
+@require_role("admin", "receptionist")
 def update_invoice(invoice_id):
     try:
         invoice = Invoice.query.get(invoice_id)
@@ -96,6 +100,8 @@ def update_invoice(invoice_id):
         return jsonify({"error": "Failed to update invoice"}), 500
 
 @invoices.route("", methods=["GET"])
+@require_auth
+@require_role("admin", "doctor", "receptionist")
 def list_invoices():
     try:
         invoices_list = Invoice.query.all()
@@ -108,3 +114,26 @@ def list_invoices():
     except Exception as e:
         logger.error(f"Error listing invoices: {e}")
         return jsonify({"error": "Failed to retrieve invoices"}), 500
+
+@invoices.route("/<int:invoice_id>", methods=["DELETE"])
+@require_auth
+@require_role("admin")
+def delete_invoice(invoice_id):
+    try:
+        invoice = Invoice.query.get(invoice_id)
+
+        if not invoice:
+            return jsonify({"error": "Invoice not found"}), 404
+
+        db.session.delete(invoice)
+        db.session.commit()
+
+        return jsonify({
+            "message": "Invoice deleted permanently",
+            "invoice_id": invoice_id
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error deleting invoice {invoice_id}: {e}")
+        return jsonify({"error": "Failed to delete invoice"}), 500
