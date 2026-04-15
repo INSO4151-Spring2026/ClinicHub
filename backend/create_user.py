@@ -2,13 +2,17 @@ from app import create_app, db
 from app.models.user import User
 from app.models.role import Role
 
+# to reconstruct tables
+# app = create_app()
+# to reconstruct roles 
+# python -c "from app import db, create_app; from app.models.role import Role; app=create_app(); app.app_context().push(); db.session.execute(db.text('INSERT INTO role (id, name) VALUES (1, \'admin\'), (2, \'doctor\'), (3, \'nurse\'), (4, \'receptionist\') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name')); db.session.commit(); print('--- ROLE TABLE SYNCED ---')"
 app = create_app()
-
 with app.app_context():
     # ---------------------------------------------------------
     # ENSURE ROLES EXIST
     # ---------------------------------------------------------
     # Mapping based on DB: 1:admin, 2:doctor, 3:nurse, 4:receptionist
+    db.create_all()  # Ensure tables are created before seeding
     roles_to_seed = {
         1: "admin", 
         2: "doctor", 

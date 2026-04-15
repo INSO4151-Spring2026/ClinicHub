@@ -1,8 +1,7 @@
 """
 Shared fixtures for the ClinicHub test suite.
-
-Uses SQLite in-memory database so no real PostgreSQL connection is needed.
-Each test function gets a fresh database via function-scoped fixtures.
+Dynamically switches between in-memory SQLite (unit tests) and 
+file-based SQLite (integration tests) based on markers.
 """
 import sys
 import os
@@ -25,17 +24,39 @@ from app.utils.jwt_handler import generate_access_token, generate_refresh_token
 # ---------------------------------------------------------------------------
 
 @pytest.fixture(scope="function")
-def app():
-    """Create a Flask app configured for testing with an in-memory SQLite DB."""
+def app(request):
+    """
+    Creates a Flask app. 
+    Uses a physical file for @pytest.mark.integration to allow process syncing.
+    """
     flask_app = create_app("testing")
+    
+    # Check if the current test has the @pytest.mark.integration marker
+    marker = request.node.get_closest_marker("integration")
+    
+    if marker:
+        # Physical file so external servers (Node/Flask) can see the same data
+        flask_app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///test_integration.db"
+    else:
+        # Default in-memory for speed and isolation
+        flask_app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
 
     with flask_app.app_context():
         _db.create_all()
         _seed_roles()
+        
         yield flask_app
+        
         _db.session.remove()
         _db.engine.dispose()
         _db.drop_all()
+        
+        # Cleanup the physical file after integration tests
+        if marker and os.path.exists("test_integration.db"):
+            try:
+                os.remove("test_integration.db")
+            except OSError:
+                pass
 
 
 @pytest.fixture(scope="function")
@@ -50,6 +71,7 @@ def client(app):
 
 def _seed_roles():
     """Insert the four standard roles if they don't exist."""
+    # Ensure these are lowercase to match your updated roles.js
     for name in ["admin", "doctor", "nurse", "receptionist"]:
         if not Role.query.filter_by(name=name).first():
             _db.session.add(Role(name=name))
@@ -126,25 +148,21 @@ def receptionist_user(app):
 
 @pytest.fixture
 def admin_token(app, admin_user):
-
     return generate_access_token(admin_user)
 
 
 @pytest.fixture
 def doctor_token(app, doctor_user):
-    
     return generate_access_token(doctor_user)
 
 
 @pytest.fixture
 def nurse_token(app, nurse_user):
-    
     return generate_access_token(nurse_user)
 
 
 @pytest.fixture
 def receptionist_token(app, receptionist_user):
-   
     return generate_access_token(receptionist_user)
 
 
@@ -199,7 +217,7 @@ _APPT_BASE = datetime(2026, 6, 1, 9, 0, 0, tzinfo=timezone.utc)
 
 @pytest.fixture
 def sample_appointment(app, sample_patient, doctor_user):
-    """A single scheduled appointment (doctor → Jane Doe, 09:00–09:30 UTC on 2026-06-01)."""
+    """A single scheduled appointment."""
     appt = Appointment(
         patient_id=sample_patient.patient_id,
         provider_user_id=doctor_user.user_id,
