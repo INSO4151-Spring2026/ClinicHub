@@ -16,8 +16,8 @@ def login():
         return jsonify({"error": "Invalid email or password"}), 401
 
     
-    access_token = generate_access_token(user.user_id, user.role.name)
-    refresh_token = generate_refresh_token(user.user_id)
+    access_token = generate_access_token(user)
+    refresh_token = generate_refresh_token(user)
 
     return jsonify({
         "access_token": access_token, 
