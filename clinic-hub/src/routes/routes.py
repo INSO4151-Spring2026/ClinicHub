@@ -1,11 +1,10 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime, timezone, timedelta
-# These imports now work thanks to the sys.path bridge in app.py
 from app import db
 from app.models.appointment import Appointment
 from app.utils.jwt_handler import generate_access_token
 
-
+# strict_slashes=False prevents 404s if the request has a trailing slash
 api_bp = Blueprint('api', __name__)
 
 # --- 1. ADMIN ONLY: ANALYTICS ---
@@ -32,13 +31,11 @@ def get_medical_records(patient_id):
         "message": "Accessing sensitive medical history..."
     }), 200
 
-# --- 3. APPOINTMENTS (Now using Database) ---
+# --- 3. APPOINTMENTS ---
 @api_bp.route('/appointments', methods=['GET'])
 def get_appointments():
     try:
-        # Fetch all records from the SQLite database
         appointments = Appointment.query.all()
-        # Convert the database objects into a list of dictionaries
         return jsonify([appt.to_dict() for appt in appointments]), 200
     except Exception as e:
         return jsonify({"error": f"Database error: {str(e)}"}), 500
@@ -46,8 +43,6 @@ def get_appointments():
 @api_bp.route('/appointments', methods=['POST'])
 def create_appointment():
     data = request.get_json()
-
-    # VALIDATION CHECK: Ensure required keys exist
     required_fields = ['patient_id', 'provider_user_id', 'appointment_date', 'reason']
     missing = [field for field in required_fields if field not in data]
     
@@ -58,11 +53,9 @@ def create_appointment():
         }), 400
 
     try:
-        # TIMEZONE-AWARE PARSING
         start_time = datetime.fromisoformat(data['appointment_date']).replace(tzinfo=timezone.utc)
         end_time = start_time + timedelta(minutes=30)
 
-        # 3. CONFLICT CHECK 
         conflict = Appointment.check_conflict(
             provider_user_id=data['provider_user_id'],
             scheduled_start=start_time,
@@ -72,14 +65,13 @@ def create_appointment():
         if conflict:
             return jsonify({"error": "This time slot is already booked."}), 409
 
-        # CREATE THE RECORD
         new_appt = Appointment(
             patient_id=data['patient_id'],
             provider_user_id=data['provider_user_id'],
             scheduled_start=start_time,
             scheduled_end=end_time,
             reason=data['reason'],
-            notes=data.get('notes', ''), # .get() is safer for optional fields
+            notes=data.get('notes', ''),
             status="scheduled"
         )
 
@@ -89,7 +81,6 @@ def create_appointment():
 
     except Exception as e:
         db.session.rollback()
-        print(f"Server Error: {e}")
         return jsonify({"error": "Internal Server Error", "details": str(e)}), 500
     
 @api_bp.route('/appointments/<int:appt_id>', methods=['DELETE'])
@@ -101,11 +92,9 @@ def delete_appointment(appt_id):
         return jsonify({"message": "Deleted"}), 200
     return jsonify({"message": "Not found"}), 404
 
-# --- 4. VITALS SUBMISSION ---
+# --- 4. VITALS ---
 @api_bp.route('/vitals', methods=['POST'])
 def submit_vitals():
-    data = request.json
-    print(f"Vitals received: {data}")
     return jsonify({"message": "Vitals saved to patient record."}), 201
 
 # --- 5. BILLING ---
@@ -118,7 +107,7 @@ def process_billing():
         "carrier": data.get('carrierName')
     }), 201
 
-# --- 6. CREATE NEW PATIENT ---
+# --- 6. CREATE PATIENT ---
 @api_bp.route('/patients', methods=['POST'])
 def create_patient():
     data = request.json
@@ -127,24 +116,42 @@ def create_patient():
         "patientName": f"{data.get('first_name')} {data.get('last_name')}"
     }), 201
 
-# --- 7. LOGIN ---
+# --- 7. LOGIN (Corrected for String Roles) ---
 @api_bp.route('/login', methods=['POST'])
 def login():
     data = request.json
     email = data.get('email')
     password = data.get('password')
-
-    users = {
-        "admin@clinic.com": "Admin",
-        "doctor@clinic.com": "Doctor",
-        "receptionist@clinic.com": "Receptionist"
+    
+    users_roles = {
+        "admin@clinic.com": "admin",
+        "doctor@clinic.com": "doctor",
+        "receptionist@clinic.com": "receptionist"
     }
 
-    if email in users and password == "123":
-        role = users[email]
-        # Fixed: now calling the correctly imported generate_access_token
-        token = generate_access_token(1, role) 
-        return jsonify({"token": token, "role": role, "message": "Success"}), 200
+    if email in users_roles and password == "123":
+        role_name = users_roles[email]
+        
+        # FIX 2: Match the attributes your jwt_handler.py expects
+        class UserMock:
+            def __init__(self, uid, rname):
+                self.user_id = uid
+                self.role_id = rname  # We set the ID to the STRING "admin" 
+                self.role = rname     # so both Node and Flask are happy
+
+        user_obj = UserMock(1, role_name)
+        
+        try:
+            token = generate_access_token(user_obj)
+            return jsonify({
+                "access_token": token, 
+                "role": role_name, 
+                "message": "Success"
+            }), 200
+        except Exception as e:
+            # This will help you see errors in the console instead of just getting a 500
+            print(f"JWT Generation Error: {e}")
+            return jsonify({"error": "Token generation failed"}), 500
     
     return jsonify({"message": "Invalid credentials"}), 401
 
@@ -154,13 +161,8 @@ def daily_revenue():
     date = request.args.get('date')
     if not date:
         return jsonify({"message": "Date is required"}), 400
-        
     return jsonify({
         "date": date,
         "transaction_count": 12,
-        "data": {
-            "subtotal": 1200.00,
-            "tax": 84.00,
-            "total_revenue": 1284.00
-        }
+        "data": {"subtotal": 1200.0, "tax": 84.0, "total_revenue": 1284.0}
     }), 200

@@ -19,6 +19,7 @@ from app.models.appointment import Appointment
 from routes.routes import api_bp
 
 app = Flask(__name__)
+app.url_map.strict_slashes = False
 CORS(app)
 
 # --- 3. DATABASE & SECURITY CONFIGURATION ---
@@ -40,13 +41,17 @@ app.config["SECRET_KEY"] = "your_shared_secret_key"
 db.init_app(app)
 
 # --- REGISTER ROUTES ---
+# app.register_blueprint(api_bp)
 app.register_blueprint(api_bp, url_prefix='/api')
 
 # --- START SERVER ---
 if __name__ == "__main__":
     print(f"--- ClinicHub Backend Link Active ---")
     print(f"Database Location: {db_path}")
-    
+    print("\n--- DETECTED FLASK ROUTES ---")
+    for rule in app.url_map.iter_rules():
+        print(f"Path: {rule.rule} | Methods: {rule.methods} | Endpoint: {rule.endpoint}")
+    print("----------------------------\n")
     # Create tables automatically if they don't exist
     with app.app_context():
         # This creates the .db file and tables based on your models
