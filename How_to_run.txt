@@ -41,9 +41,9 @@ DB_PASSWORD=clinichub2026
 python run.py
 
 These need the to be cd in test
-inetegration jwt 
+test pytest 
 1.
-python -m pytest test_jwt_integration.py
+python -m pytest test_jwt.py
 
 to run all integration tests, need to run the flask db server first then node server
 1.
