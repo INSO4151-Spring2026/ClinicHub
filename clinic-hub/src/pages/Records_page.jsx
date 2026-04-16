@@ -7,29 +7,59 @@ const Records_page = () => {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
 
-  const allPatients = [
-    { id: "1", firstName: "John", lastName: "Doe", email: "john@email.com", phone: "123-456-7890", dob: "1990-05-15", address: "123 Health St, PR", bloodType: "O+", notes: "N/A" },
-    { id: "2", firstName: "Jane", lastName: "Smith", email: "jane@email.com", phone: "987-654-3210", dob: "1985-11-22", address: "456 Clinic Ave, PR", bloodType: "A-", notes: "Peanut allergy" },
-    { id: "3", firstName: "Robert", lastName: "Brown", email: "robert@email.com", phone: "555-019-2837", dob: "1978-03-10", address: "789 Hospital Rd, PR", bloodType: "B+", notes: "Hypertension" },
-  ];
-
-  // Initialize state with the found patient
-  const [patient, setPatient] = useState(() => {
-    return allPatients.find(p => p.id === id) || allPatients[0];
-  });
+  const [patient, setPatient] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   // Sync state if the ID in the URL changes
   useEffect(() => {
-    const found = allPatients.find(p => p.id === id);
-    if (found) {
-      setPatient(found);
-    }
-  }, [id]);
+    const fetchPatientData = async () => {
+        const token = localStorage.getItem('token');
+        try {
+        // Matches router.get('/patient/:id/records'...) in user_routes.js
+        const response = await fetch(`http://localhost:5000/patient/${id}/records`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
 
-  const handleSave = () => {
-    setIsEditing(false);
-    alert(`Successfully updated ${patient.firstName} ${patient.lastName}`);
+        if (response.ok) {
+            const data = await response.json();
+            // Set the state to the data returned by the backend
+            setPatient(data);
+        } else {
+            console.error("Failed to fetch patient records");
+        }
+        } catch (err) {
+        console.error("Connection error:", err);
+        } finally {
+        setLoading(false);
+        }
+    };
+
+    fetchPatientData();
+    }, [id]);
+
+  const handleSave = async () => {
+    const token = localStorage.getItem('token');
+    try {
+        const response = await fetch(`http://localhost:5000/patient/${id}/records`, {
+        method: 'PUT',
+        headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify(patient)
+        });
+
+        if (response.ok) {
+        setIsEditing(false);
+        alert(`Successfully updated record for ID: ${id}`);
+        }
+    } catch (err) {
+        alert("Update failed. Backend route might not be ready.");
+    }
   };
+
+  if (loading) return <div style={container}>Loading patient records...</div>;
+  if (!patient) return <div style={container}>Patient record not found.</div>;
 
   return (
     <div style={container}>
@@ -62,12 +92,12 @@ const Records_page = () => {
 
         <div style={formGrid}>
           {[
-            { label: "First Name", icon: <User size={14}/>, key: "firstName" },
-            { label: "Last Name", icon: <User size={14}/>, key: "lastName" },
+            { label: "First Name", icon: <User size={14}/>, key: "first_name" },
+            { label: "Last Name", icon: <User size={14}/>, key: "last_name" },
             { label: "Email Address", icon: <Mail size={14}/>, key: "email" },
             { label: "Phone Number", icon: <Phone size={14}/>, key: "phone" },
             { label: "Date of Birth", icon: <Calendar size={14}/>, key: "dob", type: "date" },
-            { label: "Blood Type", icon: <Activity size={14}/>, key: "bloodType" }
+            { label: "Blood Type", icon: <Activity size={14}/>, key: "blood_type" }
           ].map((field) => (
             <div key={field.key} style={inputGroup}>
               <label style={labelStyle}>{field.icon} {field.label}</label>
