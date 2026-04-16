@@ -6,7 +6,8 @@ import userRoutes from './routes/user_routes.js';
 
 const app = express();
 const upload = multer();
-const JWT_SECRET = "your_shared_secret_key"; 
+// const JWT_SECRET = "your-super-secret-key";
+const JWT_SECRET = "clinic-hub-secret-2026";
 
 app.use(express.json()); 
 app.use(cors({

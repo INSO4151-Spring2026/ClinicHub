@@ -68,106 +68,119 @@ class TestRolePermissions:
     # --- Admin: full access ---
 
     def test_admin_can_list_patients(self, client, admin_user, sample_patient):
-        res = client.get("/api/patients", headers=_headers(generate_access_token(admin_user.user_id)))
+        token = generate_access_token(admin_user)
+        res = client.get("/api/patients", headers=_headers(token))
         assert res.status_code == 200
 
     def test_admin_can_create_patient(self, client, admin_user):
-        res = client.post("/api/patients", json=PATIENT_PAYLOAD,
-                          headers=_headers(generate_access_token(admin_user.user_id)))
+        token = generate_access_token(admin_user)
+        res = client.post("/api/patients", json=PATIENT_PAYLOAD, headers=_headers(token))
         assert res.status_code == 201
 
     def test_admin_can_update_patient(self, client, admin_user, sample_patient):
+        token = generate_access_token(admin_user)
         res = client.put(
             f"/api/patients/{sample_patient.patient_id}",
             json={"first_name": "Updated"},
-            headers=_headers(generate_access_token(admin_user.user_id)),
+            headers=_headers(token),
         )
         assert res.status_code == 200
 
     def test_admin_can_delete_patient(self, client, admin_user, sample_patient):
+        token = generate_access_token(admin_user)
         res = client.delete(
             f"/api/patients/{sample_patient.patient_id}",
-            headers=_headers(generate_access_token(admin_user.user_id)),
+            headers=_headers(token),
         )
         assert res.status_code == 200
 
     # --- Doctor: can read, create, update — cannot delete ---
 
     def test_doctor_can_read_patient(self, client, doctor_user, sample_patient):
+        token = generate_access_token(doctor_user)
         res = client.get(
             f"/api/patients/{sample_patient.patient_id}",
-            headers=_headers(generate_access_token(doctor_user.user_id)),
+            headers=_headers(token),
         )
         assert res.status_code == 200
 
     def test_doctor_can_create_patient(self, client, doctor_user):
+        token = generate_access_token(doctor_user)
         res = client.post("/api/patients",
                           json={**PATIENT_PAYLOAD, "email": "doc.patient@test.com"},
-                          headers=_headers(generate_access_token(doctor_user.user_id)))
+                          headers=_headers(token))
         assert res.status_code == 201
 
     def test_doctor_can_update_patient(self, client, doctor_user, sample_patient):
+        token = generate_access_token(doctor_user)
         res = client.put(
             f"/api/patients/{sample_patient.patient_id}",
             json={"phone": "555-9999"},
-            headers=_headers(generate_access_token(doctor_user.user_id)),
+            headers=_headers(token),
         )
         assert res.status_code == 200
 
     def test_doctor_cannot_delete_patient(self, client, doctor_user, sample_patient):
+        token = generate_access_token(doctor_user)
         res = client.delete(
             f"/api/patients/{sample_patient.patient_id}",
-            headers=_headers(generate_access_token(doctor_user.user_id)),
+            headers=_headers(token),
         )
         assert res.status_code == 403
 
     # --- Nurse: can read, create, update — cannot delete ---
 
     def test_nurse_can_create_patient(self, client, nurse_user):
+        token = generate_access_token(nurse_user)
         res = client.post("/api/patients",
                           json={**PATIENT_PAYLOAD, "email": "nurse.patient@test.com"},
-                          headers=_headers(generate_access_token(nurse_user.user_id)))
+                          headers=_headers(token))
         assert res.status_code == 201
 
     def test_nurse_can_update_patient(self, client, nurse_user, sample_patient):
+        token = generate_access_token(nurse_user)
         res = client.put(
             f"/api/patients/{sample_patient.patient_id}",
             json={"address": "789 New St"},
-            headers=_headers(generate_access_token(nurse_user.user_id)),
+            headers=_headers(token),
         )
         assert res.status_code == 200
 
     def test_nurse_cannot_delete_patient(self, client, nurse_user, sample_patient):
+        token = generate_access_token(nurse_user)
         res = client.delete(
             f"/api/patients/{sample_patient.patient_id}",
-            headers=_headers(generate_access_token(nurse_user.user_id)),
+            headers=_headers(token),
         )
         assert res.status_code == 403
 
     # --- Receptionist: can read and create — cannot update or delete ---
 
     def test_receptionist_can_list_patients(self, client, receptionist_user, sample_patient):
-        res = client.get("/api/patients",
-                         headers=_headers(generate_access_token(receptionist_user.user_id)))
+        token = generate_access_token(receptionist_user)
+        res = client.get("/api/patients", headers=_headers(token))
         assert res.status_code == 200
 
     def test_receptionist_can_create_patient(self, client, receptionist_user):
+        token = generate_access_token(receptionist_user)
         res = client.post("/api/patients",
                           json={**PATIENT_PAYLOAD, "email": "rec.patient@test.com"},
-                          headers=_headers(generate_access_token(receptionist_user.user_id)))
+                          headers=_headers(token))
         assert res.status_code == 201
 
     def test_receptionist_cannot_update_patient(self, client, receptionist_user, sample_patient):
+        token = generate_access_token(receptionist_user)
         res = client.put(
             f"/api/patients/{sample_patient.patient_id}",
             json={"first_name": "Hacker"},
-            headers=_headers(generate_access_token(receptionist_user.user_id)),
+            headers=_headers(token),
         )
         assert res.status_code == 403
 
     def test_receptionist_cannot_delete_patient(self, client, receptionist_user, sample_patient):
+        token = generate_access_token(receptionist_user)
         res = client.delete(
             f"/api/patients/{sample_patient.patient_id}",
-            headers=_headers(generate_access_token(receptionist_user.user_id)),
+            headers=_headers(token),
         )
         assert res.status_code == 403

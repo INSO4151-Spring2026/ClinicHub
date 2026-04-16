@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Routes, Route, Link, Navigate } from 'react-router-dom' 
 import './App.css'
 import Login_page from './pages/Login_page'
@@ -129,14 +129,26 @@ const Home = ({ role, handleRoleChange }) => (
 
 // --- APP COMPONENT ---
 function App() {
-  const [role, setRole] = useState('')
+  // Use localStorage so the role isn't lost when moving between pages
+  const [role, setRole] = useState(localStorage.getItem('userRole') || '')
 
   const handleRoleChange = (e) => {
-    setRole(e.target.value)
+    const newRole = e.target.value;
+    setRole(newRole);
+    localStorage.setItem('userRole', newRole);
   }
+
+  // Sync state if localStorage changes 
+  useEffect(() => {
+    const savedRole = localStorage.getItem('userRole');
+    if (savedRole && savedRole !== role) {
+      setRole(savedRole);
+    }
+  }, [role]);
 
   const ProtectedRoute = ({ role, allowedRoles, children }) => {
     if (!allowedRoles.includes(role)) {
+      // If user is not authorized, send them back home
       return <Navigate to="/" replace />;
     }
     return children;
@@ -147,8 +159,8 @@ function App() {
       <Route path="/" element={<Home role={role} handleRoleChange={handleRoleChange} />} />
       <Route path="/login" element={<Login_page />} />
       <Route path="/plan" element={<Plan_page />} />
-      <Route path="/calendar" element={<Calendar_page />} /> {/* New Route */}
-
+      <Route path="/calendar" element={<Calendar_page />} />
+      
       <Route path="/vitals" element={
         <ProtectedRoute role={role} allowedRoles={['Admin', 'Doctor']}>
           <Vitals_page />

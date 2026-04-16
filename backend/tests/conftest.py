@@ -1,8 +1,7 @@
 """
 Shared fixtures for the ClinicHub test suite.
-
-Uses SQLite in-memory database so no real PostgreSQL connection is needed.
-Each test function gets a fresh database via function-scoped fixtures.
+Dynamically switches between in-memory SQLite (unit tests) and 
+file-based SQLite (integration tests) based on markers.
 """
 import sys
 import os
@@ -25,17 +24,40 @@ from app.utils.jwt_handler import generate_access_token, generate_refresh_token
 # ---------------------------------------------------------------------------
 
 @pytest.fixture(scope="function")
-def app():
-    """Create a Flask app configured for testing with an in-memory SQLite DB."""
+def app(request):
+    """
+    Creates a Flask app. 
+    Uses a physical file for @pytest.mark.integration to allow process syncing.
+    """
     flask_app = create_app("testing")
+    
+    # Check if the current test has the @pytest.mark.integration marker
+    marker = request.node.get_closest_marker("integration")
+    
+    if marker:
+        # Physical file so external servers (Node/Flask) can see the same data
+        flask_app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///test_integration.db"
+    else:
+        # Default in-memory for speed and isolation
+        flask_app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
 
     with flask_app.app_context():
         _db.create_all()
         _seed_roles()
+        _seed_patients() # Ensures patient_id 1 exists for appointments
+        
         yield flask_app
+        
         _db.session.remove()
         _db.engine.dispose()
         _db.drop_all()
+        
+        # Cleanup the physical file after integration tests
+        if marker and os.path.exists("test_integration.db"):
+            try:
+                os.remove("test_integration.db")
+            except OSError:
+                pass
 
 
 @pytest.fixture(scope="function")
@@ -55,6 +77,23 @@ def _seed_roles():
             _db.session.add(Role(name=name))
     _db.session.commit()
 
+def _seed_patients():
+    """Ensure at least one patient exists for integration tests."""
+    if not Patient.query.get(1):
+        patient = Patient(
+            first_name="Jane",
+            last_name="Doe",
+            dob=date(1990, 5, 15),
+            sex="female",
+            email="jane.doe@test.com",
+            phone="555-0001",
+            address="123 Main St, Anytown, USA",
+            emergency_contact_name="John Doe",
+            emergency_contact_phone="555-0002"
+        )
+        _db.session.add(patient)
+        _db.session.commit()
+
 
 # ---------------------------------------------------------------------------
 # User fixtures
@@ -63,75 +102,93 @@ def _seed_roles():
 @pytest.fixture
 def admin_user(app):
     role = Role.query.filter_by(name="admin").first()
-    user = User(
-        role_id=role.role_id,
-        first_name="Admin",
-        last_name="Test",
-        email="admin@test.com",
-    )
-    user.set_password("password123")
-    _db.session.add(user)
-    _db.session.commit()
+    user = User.query.filter_by(email="admin@test.com").first()
+    if not user:
+        user = User(
+            role_id=role.role_id,
+            first_name="Admin",
+            last_name="Test",
+            email="admin@test.com",
+        )
+        user.set_password("password123")
+        _db.session.add(user)
+        _db.session.commit()
     return user
 
 
 @pytest.fixture
 def doctor_user(app):
     role = Role.query.filter_by(name="doctor").first()
-    user = User(
-        role_id=role.role_id,
-        first_name="Doctor",
-        last_name="Test",
-        email="doctor@test.com",
-    )
-    user.set_password("password123")
-    _db.session.add(user)
-    _db.session.commit()
+    user = User.query.filter_by(email="doctor@test.com").first()
+    if not user:
+        user = User(
+            role_id=role.role_id,
+            first_name="Doctor",
+            last_name="Test",
+            email="doctor@test.com",
+        )
+        user.set_password("password123")
+        _db.session.add(user)
+        _db.session.commit()
     return user
 
 
 @pytest.fixture
 def nurse_user(app):
     role = Role.query.filter_by(name="nurse").first()
-    user = User(
-        role_id=role.role_id,
-        first_name="Nurse",
-        last_name="Test",
-        email="nurse@test.com",
-    )
-    user.set_password("password123")
-    _db.session.add(user)
-    _db.session.commit()
+    user = User.query.filter_by(email="nurse@test.com").first()
+    if not user:
+        user = User(
+            role_id=role.role_id,
+            first_name="Nurse",
+            last_name="Test",
+            email="nurse@test.com",
+        )
+        user.set_password("password123")
+        _db.session.add(user)
+        _db.session.commit()
     return user
 
 
 @pytest.fixture
 def receptionist_user(app):
     role = Role.query.filter_by(name="receptionist").first()
-    user = User(
-        role_id=role.role_id,
-        first_name="Receptionist",
-        last_name="Test",
-        email="receptionist@test.com",
-    )
-    user.set_password("password123")
-    _db.session.add(user)
-    _db.session.commit()
+    user = User.query.filter_by(email="receptionist@test.com").first()
+    if not user:
+        user = User(
+            role_id=role.role_id,
+            first_name="Receptionist",
+            last_name="Test",
+            email="receptionist@test.com",
+        )
+        user.set_password("password123")
+        _db.session.add(user)
+        _db.session.commit()
     return user
 
 
 # ---------------------------------------------------------------------------
-# Token / header fixtures
+# Token / header fixtures 
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
 def admin_token(app, admin_user):
-    return generate_access_token(admin_user.user_id)
+    return generate_access_token(admin_user)
 
 
 @pytest.fixture
 def doctor_token(app, doctor_user):
-    return generate_access_token(doctor_user.user_id)
+    return generate_access_token(doctor_user)
+
+
+@pytest.fixture
+def nurse_token(app, nurse_user):
+    return generate_access_token(nurse_user)
+
+
+@pytest.fixture
+def receptionist_token(app, receptionist_user):
+    return generate_access_token(receptionist_user)
 
 
 @pytest.fixture
@@ -144,49 +201,9 @@ def doctor_auth_headers(doctor_token):
     return {"Authorization": f"Bearer {doctor_token}"}
 
 
-# ---------------------------------------------------------------------------
-# Patient fixture
-# ---------------------------------------------------------------------------
-
-@pytest.fixture
-def sample_patient(app):
-    patient = Patient(
-        first_name="Jane",
-        last_name="Doe",
-        dob=date(1990, 5, 15),
-        sex="female",
-        email="jane.doe@test.com",
-        phone="555-0001",
-        address="123 Main St",
-        emergency_contact_name="John Doe",
-        emergency_contact_phone="555-0002",
-    )
-    _db.session.add(patient)
-    _db.session.commit()
-    return patient
-
-
-# ---------------------------------------------------------------------------
-# Appointment fixtures
-# ---------------------------------------------------------------------------
-
-# A fixed future reference point so all appointment datetimes are consistent
-_APPT_BASE = datetime(2026, 6, 1, 9, 0, 0, tzinfo=timezone.utc)
-
-
-@pytest.fixture
-def nurse_token(app, nurse_user):
-    return generate_access_token(nurse_user.user_id)
-
-
 @pytest.fixture
 def nurse_auth_headers(nurse_token):
     return {"Authorization": f"Bearer {nurse_token}"}
-
-
-@pytest.fixture
-def receptionist_token(app, receptionist_user):
-    return generate_access_token(receptionist_user.user_id)
 
 
 @pytest.fixture
@@ -194,9 +211,26 @@ def receptionist_auth_headers(receptionist_token):
     return {"Authorization": f"Bearer {receptionist_token}"}
 
 
+# ---------------------------------------------------------------------------
+# Patient fixture
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def sample_patient(app):
+    """Retrieves the seeded patient (ID 1)."""
+    return Patient.query.get(1)
+
+
+# ---------------------------------------------------------------------------
+# Appointment fixtures
+# ---------------------------------------------------------------------------
+
+_APPT_BASE = datetime(2026, 6, 1, 9, 0, 0, tzinfo=timezone.utc)
+
+
 @pytest.fixture
 def sample_appointment(app, sample_patient, doctor_user):
-    """A single scheduled appointment (doctor → Jane Doe, 09:00–09:30 UTC on 2026-06-01)."""
+    """A single scheduled appointment."""
     appt = Appointment(
         patient_id=sample_patient.patient_id,
         provider_user_id=doctor_user.user_id,
