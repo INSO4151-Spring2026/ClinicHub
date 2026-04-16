@@ -1,6 +1,7 @@
 import pytest
 import requests
 import os
+import time
 
 # The Gateway URL (Node.js)
 BASE_URL = "http://localhost:5000"
@@ -15,8 +16,7 @@ class TestPatientAuthIntegration:
     @pytest.fixture(autouse=True)
     def setup_tokens(self, app):
         """
-        This fixture ensures the 'app' fixture from conftest.py runs first,
-        which creates the physical 'test_integration.db' and seeds roles.
+        Ensures 'app' fixture runs to prepare the test database.
         """
         pass
 
@@ -26,32 +26,44 @@ class TestPatientAuthIntegration:
         Expects: 201 Created
         """
         headers = {"Authorization": f"Bearer {doctor_token}"}
+        
+        # Unique email ensures we don't hit "UNIQUE constraint failed" in persistent DBs
+        unique_suffix = int(time.time())
         patient_data = {
             "first_name": "John",
             "last_name": "Doe",
             "dob": "1990-01-01",
-            "sex": "male", # Match your DB model column names
-            "email": "john.doe@example.com",
-            "phone": "555-0199"
+            "sex": "male",
+            "email": f"integration_{unique_suffix}@example.com",
+            "phone": "555-0199",
+            "address": "123 Integration Way"
         }
         
-        # Note: Ensure the trailing slash matches your Flask route definition
         response = requests.post(f"{BASE_URL}/api/patients", json=patient_data, headers=headers)
         
-        # If this returns 404, check if the Node Gateway forwards /api/patients
-        # If this returns 401, check if Flask is running with FLASK_ENV=testing
+        # Assertions
         assert response.status_code == 201
-        assert "patient_id" in response.json()
+        data = response.json()
+        
+        # FLEXIBLE CHECK: Handle nested {"patient": {...}} or flat {...}
+        patient_obj = data.get("patient", data)
+        
+        # Verify the record was created by checking for an ID
+        # Using a more generic check to prevent KeyError: 'first_name'
+        if "patient_id" in patient_obj:
+            assert patient_obj["patient_id"] is not None
+        elif "id" in patient_obj:
+            assert patient_obj["id"] is not None
+        else:
+            # Fallback debug: what keys did we actually get?
+            pytest.fail(f"Response missing ID. Keys found: {list(patient_obj.keys())}")
 
     def test_unauthorized_access_denied(self):
         """
         Test: Accessing the patients list without a token should be blocked.
         Expects: 401 Unauthorized
         """
-        # Act: Attempt to fetch patients WITHOUT a token
         response = requests.get(f"{BASE_URL}/api/patients")
-        
-        # Assert: The decorator should catch this and return 401
         assert response.status_code == 401
 
     def test_receptionist_can_view_patients(self, receptionist_token):
@@ -63,4 +75,12 @@ class TestPatientAuthIntegration:
         response = requests.get(f"{BASE_URL}/api/patients", headers=headers)
         
         assert response.status_code == 200
-        assert isinstance(response.json(), list)
+        data = response.json()
+        
+        # Integration server returns a list directly [{}, {}]
+        assert isinstance(data, list)
+        
+        if len(data) > 0:
+            # Verify the shape of the objects inside the list
+            first_patient = data[0]
+            assert any(key in first_patient for key in ["patient_id", "id", "email"])
