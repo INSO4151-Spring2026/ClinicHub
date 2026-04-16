@@ -1,21 +1,26 @@
-const authorize = (allowedRoles) => {
+import jwt from 'jsonwebtoken';
+// middleware/authorization_middleware.js
+const authorize = (allowedRoles = []) => {
   return (req, res, next) => {
-
-    console.log(`Checking access: User Role [${req.user?.role}] vs Allowed [${allowedRoles}]`);
+    const token = req.headers.authorization?.split(' ')[1];
     
-    if (!req.user) {
-      return res.status(401).json({ message: "Unauthorized: No user found" });
-    }
+    if (!token) return res.status(401).json({ message: "No token" });
 
-    if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ 
-        message: `Forbidden: You do not have the required permissions (${allowedRoles.join(' or ')})` 
-      });
-    }
+    try {
+      // DEBUG: Hardcode the secret here to match Flask exactly
+      const decoded = jwt.verify(token, "your-super-secret-key");
+      req.user = decoded;
+      console.log("DEBUG: Decoded Role:", decoded.role);
+      console.log("DEBUG: Allowed Roles:", allowedRoles);
 
-    next();
+      if (!allowedRoles.includes(decoded.role)) {
+        return res.status(403).json({ message: "Role mismatch" });
+      }
+      next();
+    } catch (err) {
+      console.log("JWT Verify Failed:", err.message); // Check your Node console!
+      return res.status(401).json({ message: err.message });
+    }
   };
 };
-
-
 export default authorize;

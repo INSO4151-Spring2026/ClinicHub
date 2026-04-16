@@ -20,10 +20,28 @@ const Appointment_page = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
     e.preventDefault();
-
     const token = localStorage.getItem('token');
+
+    // 1. COMBINE DATE AND TIME
+    // The backend model uses 'scheduled_start' (DateTime). 
+    // We combine your separate date and time fields into one ISO string.
+    const startDateTime = `${formData.date}T${formData.time}:00`;
+
+    // 2. DATA MAPPING FOR BACKEND MODEL
+    const payload = {
+      // These IDs are required by your model. 
+      // For now, we use 1 as a placeholder until you add patient/provider selection.
+      patient_id: 1, 
+      provider_user_id: 1, 
+      
+      // Match the model's 'scheduled_start' column
+      appointment_date: startDateTime, 
+      
+      reason: formData.service,
+      notes: formData.notes
+    };
 
     try {
       const response = await fetch('http://localhost:5000/api/appointments', {
@@ -32,30 +50,29 @@ const Appointment_page = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}` 
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
+      const result = await response.json();
+
       if (response.ok) {
-        console.log('Appointment Booked:', formData);
         setSubmitted(true);
-      } else if (response.status === 403) {
-        alert("🚫 Access Denied: You don't have permission to book appointments.");
       } else {
-        alert("⚠️ Error: Could not save appointment.");
+        // Show the specific error from Flask (e.g., conflict or missing field)
+        alert(`⚠️ Error: ${result.error || "Could not save appointment."}`);
       }
     } catch (err) {
       console.error("Connection error:", err);
-      alert("❌ Connection Failed: Is your Node server running on port 5000?");
+      alert("❌ Connection Failed.");
     }
   };
 
   if (submitted) {
     return (
       <div style={{ textAlign: 'center', padding: '50px' }}>
-        <h2>Success! 🎉</h2>
+        <h2>Success! </h2>
         <p>Your appointment for {formData.service} on {formData.date} at {formData.time} is confirmed.</p>
         <button onClick={() => setSubmitted(false)} style={buttonStyle}>Book Another</button>
-        {/* navigation to success screen */}
         <button onClick={() => navigate('/calendar')} style={backButtonStyle}>Go Back to Calendar</button>
       </div>
     );
@@ -65,17 +82,17 @@ const Appointment_page = () => {
     <div style={{ maxWidth: '500px', margin: '40px auto', padding: '20px', border: '1px solid #ddd', borderRadius: '8px' }}>
       <h2 style={{ textAlign: 'center' }}>Schedule an Appointment</h2>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        {/* Name label */}
+        
         <label>
           Full Name:
           <input type="text" name="name" value={formData.name} onChange={handleChange} required style={inputStyle} />
         </label>
-        {/* Email label */}
+        
         <label>
           Email:
           <input type="email" name="email" value={formData.email} onChange={handleChange} required style={inputStyle} />
         </label>
-        {/* Service dropdown */}
+        
         <label>
           Service:
           <select name="service" value={formData.service} onChange={handleChange} style={inputStyle}>
@@ -95,7 +112,7 @@ const Appointment_page = () => {
             <input type="time" name="time" value={formData.time} onChange={handleChange} required style={inputStyle} />
           </label>
         </div>
-        {/* Notes text area */}
+
         <label>
           Notes (Optional):
           <textarea name="notes" value={formData.notes} onChange={handleChange} style={{ ...inputStyle, height: '80px' }} />
@@ -104,7 +121,6 @@ const Appointment_page = () => {
         <button type="submit" style={buttonStyle}>Confirm Booking</button>
       </form>
 
-      {/* 3. Use navigate('/') on click */}
       <button 
         onClick={() => navigate('/calendar')} 
         style={{ ...backButtonStyle, width: '100%', marginTop: '20px', marginLeft: '0' }}
@@ -115,7 +131,7 @@ const Appointment_page = () => {
   );
 };
 
-// Styles 
+// --- STYLES ---
 const inputStyle = { 
     width: '100%', 
     padding: '8px', 

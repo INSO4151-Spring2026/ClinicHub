@@ -4,12 +4,13 @@ import authorize from '../middleware/authorization_middleware.js';
 import ROLES from '../constants/roles.js';
 
 const router = express.Router();
-const FLASK_URL = 'http://localhost:5002/api';
+
+const FLASK_BASE = 'http://localhost:5002';
 
 // --- 1. ADMIN ONLY: ANALYTICS ---
 router.get('/admin/stats', authorize([ROLES.ADMIN]), async (req, res) => {
   try {
-    const response = await fetch(`${FLASK_URL}/admin/stats`, {
+    const response = await fetch(`${FLASK_BASE}/api/admin/stats`, {
       headers: { 'Authorization': req.headers.authorization }
     });
     const data = await response.json();
@@ -22,7 +23,7 @@ router.get('/admin/stats', authorize([ROLES.ADMIN]), async (req, res) => {
 // --- 2. DOCTOR & ADMIN: MEDICAL RECORDS ---
 router.get('/patient/:id/records', authorize([ROLES.DOCTOR, ROLES.ADMIN]), async (req, res) => {
   try {
-    const response = await fetch(`${FLASK_URL}/patient/${req.params.id}/records`, {
+    const response = await fetch(`${FLASK_BASE}/api/patient/${req.params.id}/records`, {
       headers: { 'Authorization': req.headers.authorization }
     });
     const data = await response.json();
@@ -32,10 +33,23 @@ router.get('/patient/:id/records', authorize([ROLES.DOCTOR, ROLES.ADMIN]), async
   }
 });
 
-// --- 3. APPOINTMENTS (Receptionist, Doctor, Admin) ---
+// --- 3. APPOINTMENTS ---
+router.get('/appointments', authorize([ROLES.RECEPTIONIST, ROLES.DOCTOR, ROLES.ADMIN]), async (req, res) => {
+  try {
+    const response = await fetch(`${FLASK_BASE}/api/appointments`, {
+      method: 'GET',
+      headers: { 'Authorization': req.headers.authorization }
+    });
+    const data = await response.json();
+    res.status(response.status).json(data); 
+  } catch (err) {
+    res.status(502).json({ message: "Flask unreachable" });
+  }
+});
+
 router.post('/appointments', authorize([ROLES.RECEPTIONIST, ROLES.DOCTOR, ROLES.ADMIN]), async (req, res) => {
   try {
-    const response = await fetch(`${FLASK_URL}/appointments`, {
+    const response = await fetch(`${FLASK_BASE}/api/appointments`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -50,10 +64,23 @@ router.post('/appointments', authorize([ROLES.RECEPTIONIST, ROLES.DOCTOR, ROLES.
   }
 });
 
-// --- 4. VITALS SUBMISSION (Doctor & Admin) ---
+router.delete('/appointments/:id', authorize([ROLES.RECEPTIONIST, ROLES.DOCTOR, ROLES.ADMIN]), async (req, res) => {
+  try {
+    const response = await fetch(`${FLASK_BASE}/api/appointments/${req.params.id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': req.headers.authorization }
+    });
+    const data = await response.json();
+    res.status(response.status).json(data);
+  } catch (err) {
+    res.status(502).json({ message: "Flask service unreachable" });
+  }
+});
+
+// --- 4. VITALS SUBMISSION ---
 router.post('/vitals', authorize([ROLES.DOCTOR, ROLES.ADMIN]), async (req, res) => {
   try {
-    const response = await fetch(`${FLASK_URL}/vitals`, {
+    const response = await fetch(`${FLASK_BASE}/api/vitals`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -68,10 +95,10 @@ router.post('/vitals', authorize([ROLES.DOCTOR, ROLES.ADMIN]), async (req, res) 
   }
 });
 
-// --- 5. BILLING (Receptionist & Admin) ---
+// --- 5. BILLING ---
 router.post('/billing', authorize([ROLES.RECEPTIONIST, ROLES.ADMIN]), async (req, res) => {
   try {
-    const response = await fetch(`${FLASK_URL}/billing`, {
+    const response = await fetch(`${FLASK_BASE}/api/billing`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -86,10 +113,23 @@ router.post('/billing', authorize([ROLES.RECEPTIONIST, ROLES.ADMIN]), async (req
   }
 });
 
-// --- 6. CREATE NEW PATIENT (Receptionist & Admin) ---
-router.post('/patients', authorize([ROLES.RECEPTIONIST, ROLES.ADMIN]), async (req, res) => {
+// --- 6. PATIENTS ---
+router.get('/patients', authorize([ROLES.RECEPTIONIST, ROLES.ADMIN, ROLES.DOCTOR]), async (req, res) => {
   try {
-    const response = await fetch(`${FLASK_URL}/patients`, {
+    const response = await fetch(`${FLASK_BASE}/api/patients`, {
+      method: 'GET',
+      headers: { 'Authorization': req.headers.authorization }
+    });
+    const data = await response.json();
+    res.status(response.status).json(data);
+  } catch (err) {
+    res.status(502).json({ message: "Flask service unreachable" });
+  }
+});
+
+router.post('/patients', authorize([ROLES.RECEPTIONIST, ROLES.ADMIN, ROLES.DOCTOR]), async (req, res) => {
+  try {
+    const response = await fetch(`${FLASK_BASE}/api/patients`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -104,10 +144,10 @@ router.post('/patients', authorize([ROLES.RECEPTIONIST, ROLES.ADMIN]), async (re
   }
 });
 
-// --- 7. LOGIN (Forwarding to Flask for Real JWT) ---
+// --- 7. LOGIN ---
 router.post('/login', async (req, res) => {
   try {
-    const response = await fetch(`${FLASK_URL}/login`, {
+    const response = await fetch(`${FLASK_BASE}/api/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req.body)
@@ -119,13 +159,13 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// --- 8. FINANCIAL REPORTS (Admin Only) ---
+// --- 8. FINANCIAL REPORTS ---
 router.get('/reports/daily-revenue', authorize([ROLES.ADMIN]), async (req, res) => {
   const { date } = req.query;
   if (!date) return res.status(400).json({ message: "Date is required." });
 
   try {
-    const response = await fetch(`${FLASK_URL}/reports/daily-revenue?date=${date}`, {
+    const response = await fetch(`${FLASK_BASE}/api/reports/daily-revenue?date=${date}`, {
       headers: { 'Authorization': req.headers.authorization }
     });
     const data = await response.json();

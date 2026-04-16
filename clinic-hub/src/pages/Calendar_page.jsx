@@ -13,20 +13,66 @@ const Calendar_page = () => {
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-  useEffect(() => {
-    fetch('http://localhost:5000/api/appointments')
-      .then(res => res.json())
-      .then(data => setAppointments(data))
-      .catch(err => console.error("Error loading appointments:", err));
+useEffect(() => {
+    const fetchAppointments = async () => {
+      const token = localStorage.getItem('token');
+      
+      try {
+        const response = await fetch('http://localhost:5000/api/appointments', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) throw new Error("Failed to fetch");
+
+        const rawData = await response.json();
+        
+        // --- TRANSFORMATION ---
+        const formattedData = rawData.map(appt => {
+          const d = new Date(appt.scheduled_start);
+          
+          return {
+            // Match the Flask Model primary key name
+            id: appt.appointment_id, 
+            
+            // Format time for the UI (e.g., "1:00 PM")
+            time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            
+            // Note: Since patient_name isn't in your Appointment model ,
+            // i used the provider_user_id as a placeholder for now.
+            patient: `Patient ID: ${appt.patient_id}`,
+            type: appt.reason,
+            
+            // Used for the calendar logic:
+            day: d.getDate(), 
+            month: d.getMonth(),
+            year: d.getFullYear()
+          };
+        });
+
+        setAppointments(formattedData);
+      } catch (err) {
+        console.error("Error loading appointments:", err);
+      }
+    };
+
+    fetchAppointments();
   }, []);
 
-  const handleRemove = async (id) => {
+const handleRemove = async (id) => {
     if (window.confirm("Are you sure you want to remove this appointment?")) {
       try {
+        const token = localStorage.getItem('token');
         const response = await fetch(`http://localhost:5000/api/appointments/${id}`, {
           method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
         });
+        
         if (response.ok) {
+          // Filter using the same ID variable
           setAppointments(appointments.filter(appt => appt.id !== id));
         }
       } catch (err) {
@@ -48,6 +94,7 @@ const Calendar_page = () => {
   for (let i = 1; i <= daysInMonth; i++) calendarVisualGrid.push(i);
   while (calendarVisualGrid.length < 42) calendarVisualGrid.push(null);
 
+  // Filter based on the day clicked in the UI
   const selectedAppts = appointments.filter(a => 
     a.day === selectedDay && a.month === monthIndex && a.year === year
   );
@@ -79,6 +126,7 @@ const Calendar_page = () => {
             {dayNames.map(day => <div key={day} style={dayHeader}>{day}</div>)}
             {calendarVisualGrid.map((dayNum, i) => {
               const isSelected = selectedDay === dayNum;
+              // hasAppt determines if a blue dot shows up on the specific date cell
               const hasAppt = dayNum && appointments.some(a => a.day === dayNum && a.month === monthIndex && a.year === year);
               return (
                 <div key={i} onClick={() => dayNum && setSelectedDay(dayNum)}

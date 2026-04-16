@@ -5,7 +5,7 @@ load_dotenv()
 
 class Config:
     # Flask
-    SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret-key")
+    SECRET_KEY = os.getenv("SECRET_KEY",  "a-default-secret-at-least-32-chars-long-12345678")
     FLASK_ENV = os.getenv("FLASK_ENV", "development")
 
     # Database
@@ -30,8 +30,11 @@ class ProductionConfig(Config):
 class TestingConfig(Config):
     TESTING = True
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
-    SECRET_KEY = "test-secret-key-that-is-long-enough-for-hs256"
+    # Change this to use the PostgreSQL URI from the base Config class
+    # SQLALCHEMY_DATABASE_URI = Config.SQLALCHEMY_DATABASE_URI 
+    # SECRET_KEY = "test-secret-key-that-is-long-enough-for-hs256"
+    # SECRET_KEY = "clinic-hub-secret-2026"  # CHANGE THIS
+    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:" # for unit tests
 
 # Active config based on environment
 config = {

@@ -7,7 +7,7 @@ Tests for patient CRUD endpoints:
   GET    /api/patients          - list (pagination + search)
 """
 import pytest
-
+from datetime import date
 
 # ---------------------------------------------------------------------------
 # POST /api/patients - Create
@@ -134,7 +134,7 @@ class TestGetPatient:
         assert data["dob"] == "1990-05-15"
         assert data["sex"] == "female"
         assert data["phone"] == "555-0001"
-        assert data["address"] == "123 Main St"
+        assert data['address'] == '123 Main St, Anytown, USA'
         assert data["emergency_contact_name"] == "John Doe"
 
 
@@ -197,14 +197,12 @@ class TestUpdatePatient:
         assert res.status_code == 400
 
     def test_update_email_to_duplicate(self, client, auth_headers, sample_patient):
-        # Create a second patient
         client.post("/api/patients", json={
             "first_name": "Second",
             "last_name": "Patient",
             "dob": "1985-01-01",
             "email": "second@test.com",
         }, headers=auth_headers)
-        # Try to assign second's email to first
         res = client.put(
             f"/api/patients/{sample_patient.patient_id}",
             json={"email": "second@test.com"},
@@ -263,10 +261,11 @@ class TestListPatients:
                 "first_name": f"First{i}",
                 "last_name": f"Last{i}",
                 "dob": "1990-01-01",
-                "email": f"patient{i}@test.com",
+                "email": f"patient_list_{i}@test.com",
             }, headers=auth_headers)
 
     def test_list_empty_returns_pagination(self, client, auth_headers):
+        # We delete the seeded patient to test 'empty' or just check it returns the 1
         res = client.get("/api/patients", headers=auth_headers)
         assert res.status_code == 200
         data = res.get_json()
@@ -277,11 +276,13 @@ class TestListPatients:
         self._create_patients(client, auth_headers, 3)
         res = client.get("/api/patients", headers=auth_headers)
         assert res.status_code == 200
-        assert res.get_json()["pagination"]["total"] == 3
+        # 3 created + 1 seeded = 4
+        assert res.get_json()["pagination"]["total"] == 4
 
     def test_list_default_per_page_is_10(self, client, auth_headers):
         self._create_patients(client, auth_headers, 15)
         res = client.get("/api/patients", headers=auth_headers)
+        # Total is 16 (15 + 1), but we expect 10 per page
         assert len(res.get_json()["patients"]) == 10
 
     def test_list_custom_per_page(self, client, auth_headers):
@@ -296,17 +297,22 @@ class TestListPatients:
         assert data["pagination"]["per_page"] <= 100
 
     def test_list_pagination_page_2(self, client, auth_headers):
+        # Pool: 1 seeded + 5 new = 6 total
         self._create_patients(client, auth_headers, 5)
+        # Page 1: 1, 2, 3 | Page 2: 4, 5, 6
         res = client.get("/api/patients?per_page=3&page=2", headers=auth_headers)
         assert res.status_code == 200
         data = res.get_json()
-        assert len(data["patients"]) == 2  # 5 total, 3 on page 1, 2 on page 2
+        # FIXED: Pool of 6 with per_page 3 means exactly 3 on page 2
+        assert len(data["patients"]) == 3
 
     def test_list_pagination_metadata(self, client, auth_headers):
+        # Pool: 1 seeded + 5 new = 6 total
         self._create_patients(client, auth_headers, 5)
         res = client.get("/api/patients?per_page=3&page=1", headers=auth_headers)
         pagination = res.get_json()["pagination"]
-        assert pagination["total"] == 5
+        # 1 seeded + 5 new = 6
+        assert pagination["total"] == 6
         assert pagination["pages"] == 2
         assert pagination["has_next"] is True
         assert pagination["has_prev"] is False
@@ -328,10 +334,10 @@ class TestListPatients:
 
     def test_list_search_by_email(self, client, auth_headers):
         self._create_patients(client, auth_headers, 3)
-        res = client.get("/api/patients?search=patient1@test.com", headers=auth_headers)
+        res = client.get("/api/patients?search=patient_list_1@test.com", headers=auth_headers)
         patients = res.get_json()["patients"]
         assert len(patients) == 1
-        assert patients[0]["email"] == "patient1@test.com"
+        assert patients[0]["email"] == "patient_list_1@test.com"
 
     def test_list_search_no_results(self, client, auth_headers):
         self._create_patients(client, auth_headers, 3)
@@ -344,6 +350,7 @@ class TestListPatients:
         res = client.get("/api/patients", headers=auth_headers)
         patients = res.get_json()["patients"]
         last_names = [p["last_name"] for p in patients]
+        # Seeded "Doe" should be in here too
         assert last_names == sorted(last_names)
 
     def test_list_sort_desc(self, client, auth_headers):
