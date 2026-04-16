@@ -53,7 +53,7 @@ def require_role(*roles):
 
             # Uses the relationship directly. 
             role_name = user.role.name if user.role else None
-            
+            print(f"User Role: {user.role.name}")
             # Case-insensitive comparison
             if not role_name or not any(r.lower() == role_name.lower() for r in roles):
                 return jsonify({"error": "Forbidden: Insufficient permissions"}), 403
