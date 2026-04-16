@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from datetime import datetime, timezone, timedelta
 from app import db
 from app.models.appointment import Appointment
+from app.models.patient import Patient 
 from app.utils.jwt_handler import generate_access_token
 
 # Blueprint definition
@@ -107,25 +108,50 @@ def process_billing():
         "carrier": data.get('carrierName')
     }), 201
 
-# --- 6. PATIENTS (FIXED: Added GET route and patient_id in POST) ---
+# --- 6. PATIENTS  ---
 @api_bp.route('/patients', methods=['GET'])
 def list_patients():
-    """Returns a list of patients. Fixes the 404 in integration tests."""
-    return jsonify([
-        {"patient_id": 1, "first_name": "John", "last_name": "Doe"},
-        {"patient_id": 2, "first_name": "Jane", "last_name": "Smith"}
-    ]), 200
+    """Returns a real list of patients from the DB."""
+    patients = Patient.query.all()
+    return jsonify([{
+        "patient_id": p.patient_id,
+        "first_name": p.first_name,
+        "last_name": p.last_name,
+        "email": p.email
+    } for p in patients]), 200
 
 @api_bp.route('/patients', methods=['POST'])
 def create_patient():
+    """Creates a real patient record in the DB."""
     data = request.json
-    return jsonify({
-        "message": "Patient created successfully!",
-        "patient_id": 1, # Mechanical necessity for the integration test assertion
-        "patientName": f"{data.get('first_name')} {data.get('last_name')}"
-    }), 201
+    try:
+        # Convert string dob to date object
+        dob_obj = datetime.strptime(data['dob'], '%Y-%m-%d').date() if 'dob' in data else None
+        
+        new_patient = Patient(
+            first_name=data.get('first_name'),
+            last_name=data.get('last_name'),
+            dob=dob_obj,
+            sex=data.get('sex'),
+            email=data.get('email'),
+            phone=data.get('phone'),
+            address=data.get('address'),
+            emergency_contact_name=data.get('emergency_contact_name'),
+            emergency_contact_phone=data.get('emergency_contact_phone')
+        )
+        db.session.add(new_patient)
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Patient created successfully!",
+            "patient_id": new_patient.patient_id,
+            "patientName": f"{new_patient.first_name} {new_patient.last_name}"
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
 
-# --- 7. LOGIN (Fixed Mock for JWT) ---
+# --- 7. LOGIN ---
 @api_bp.route('/login', methods=['POST'])
 def login():
     data = request.json
@@ -160,7 +186,6 @@ def login():
                 "message": "Success"
             }), 200
         except Exception as e:
-            print(f"JWT Generation Error: {e}")
             return jsonify({"error": "Token generation failed"}), 500
     
     return jsonify({"message": "Invalid credentials"}), 401

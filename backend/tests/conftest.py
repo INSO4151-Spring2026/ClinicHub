@@ -44,6 +44,7 @@ def app(request):
     with flask_app.app_context():
         _db.create_all()
         _seed_roles()
+        _seed_patients() # Ensures patient_id 1 exists for appointments
         
         yield flask_app
         
@@ -71,11 +72,27 @@ def client(app):
 
 def _seed_roles():
     """Insert the four standard roles if they don't exist."""
-    # Ensure these are lowercase to match your updated roles.js
     for name in ["admin", "doctor", "nurse", "receptionist"]:
         if not Role.query.filter_by(name=name).first():
             _db.session.add(Role(name=name))
     _db.session.commit()
+
+def _seed_patients():
+    """Ensure at least one patient exists for integration tests."""
+    if not Patient.query.get(1):
+        patient = Patient(
+            first_name="Jane",
+            last_name="Doe",
+            dob=date(1990, 5, 15),
+            sex="female",
+            email="jane.doe@test.com",
+            phone="555-0001",
+            address="123 Main St, Anytown, USA",
+            emergency_contact_name="John Doe",
+            emergency_contact_phone="555-0002"
+        )
+        _db.session.add(patient)
+        _db.session.commit()
 
 
 # ---------------------------------------------------------------------------
@@ -85,60 +102,68 @@ def _seed_roles():
 @pytest.fixture
 def admin_user(app):
     role = Role.query.filter_by(name="admin").first()
-    user = User(
-        role_id=role.role_id,
-        first_name="Admin",
-        last_name="Test",
-        email="admin@test.com",
-    )
-    user.set_password("password123")
-    _db.session.add(user)
-    _db.session.commit()
+    user = User.query.filter_by(email="admin@test.com").first()
+    if not user:
+        user = User(
+            role_id=role.role_id,
+            first_name="Admin",
+            last_name="Test",
+            email="admin@test.com",
+        )
+        user.set_password("password123")
+        _db.session.add(user)
+        _db.session.commit()
     return user
 
 
 @pytest.fixture
 def doctor_user(app):
     role = Role.query.filter_by(name="doctor").first()
-    user = User(
-        role_id=role.role_id,
-        first_name="Doctor",
-        last_name="Test",
-        email="doctor@test.com",
-    )
-    user.set_password("password123")
-    _db.session.add(user)
-    _db.session.commit()
+    user = User.query.filter_by(email="doctor@test.com").first()
+    if not user:
+        user = User(
+            role_id=role.role_id,
+            first_name="Doctor",
+            last_name="Test",
+            email="doctor@test.com",
+        )
+        user.set_password("password123")
+        _db.session.add(user)
+        _db.session.commit()
     return user
 
 
 @pytest.fixture
 def nurse_user(app):
     role = Role.query.filter_by(name="nurse").first()
-    user = User(
-        role_id=role.role_id,
-        first_name="Nurse",
-        last_name="Test",
-        email="nurse@test.com",
-    )
-    user.set_password("password123")
-    _db.session.add(user)
-    _db.session.commit()
+    user = User.query.filter_by(email="nurse@test.com").first()
+    if not user:
+        user = User(
+            role_id=role.role_id,
+            first_name="Nurse",
+            last_name="Test",
+            email="nurse@test.com",
+        )
+        user.set_password("password123")
+        _db.session.add(user)
+        _db.session.commit()
     return user
 
 
 @pytest.fixture
 def receptionist_user(app):
     role = Role.query.filter_by(name="receptionist").first()
-    user = User(
-        role_id=role.role_id,
-        first_name="Receptionist",
-        last_name="Test",
-        email="receptionist@test.com",
-    )
-    user.set_password("password123")
-    _db.session.add(user)
-    _db.session.commit()
+    user = User.query.filter_by(email="receptionist@test.com").first()
+    if not user:
+        user = User(
+            role_id=role.role_id,
+            first_name="Receptionist",
+            last_name="Test",
+            email="receptionist@test.com",
+        )
+        user.set_password("password123")
+        _db.session.add(user)
+        _db.session.commit()
     return user
 
 
@@ -192,20 +217,8 @@ def receptionist_auth_headers(receptionist_token):
 
 @pytest.fixture
 def sample_patient(app):
-    patient = Patient(
-        first_name="Jane",
-        last_name="Doe",
-        dob=date(1990, 5, 15),
-        sex="female",
-        email="jane.doe@test.com",
-        phone="555-0001",
-        address="123 Main St",
-        emergency_contact_name="John Doe",
-        emergency_contact_phone="555-0002",
-    )
-    _db.session.add(patient)
-    _db.session.commit()
-    return patient
+    """Retrieves the seeded patient (ID 1)."""
+    return Patient.query.get(1)
 
 
 # ---------------------------------------------------------------------------

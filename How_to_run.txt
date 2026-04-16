@@ -1,0 +1,55 @@
+Steps to run the web page: need cd in app
+1.
+cd clinic_hub
+2.
+npm install
+3.
+npm run dev
+
+
+Run node server, need cd in app
+1.
+cd clinic_hub
+2.
+node src/server.js
+
+to run all pages and servers, starts the node(rbac), flask request sender, need cd in app
+1.
+cd clinic_hub
+2.
+npm run start-all
+
+This starts the flask server for the db. need cd in backend
+DB:
+1. 
+docker
+docker run --name ClinicHub -e POSTGRES_PASSWORD=clinichub2026 -e POSTGRES_DB=clinichub -p 5432:5432 -d postgres
+2.
+python -m venv venv
+venv\Scripts\activate
+3.
+pip install -r requirements.txt
+4.
+SECRET_KEY=your-super-secret-key
+FLASK_ENV=development
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=clinichub
+DB_USER=postgres
+DB_PASSWORD=clinichub2026
+5. 
+python run.py
+
+These need the to be cd in test
+inetegration jwt 
+1.
+python -m pytest test_jwt_integration.py
+
+to run all integration tests, need to run the flask db server first then node server
+1.
+python -m pytest -m integration
+
+
+tree structure, useful commnad to see all the project structure path
+1.
+npx tree-node-cli -I "node_modules|.git|__pycache__"
