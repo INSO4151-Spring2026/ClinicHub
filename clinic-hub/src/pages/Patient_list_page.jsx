@@ -14,7 +14,7 @@ const Patient_list = () => {
       const token = localStorage.getItem('token');
       try {
         // Calling port 5000 (Express) which proxies to port 5002 (Flask)
-        const response = await fetch('http://localhost:5000/patients', {
+        const response = await fetch('http://localhost:5000/api/patients', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -107,17 +107,17 @@ const Patient_list = () => {
         <tbody>
           {filteredPatients.length > 0 ? (
             filteredPatients.map((patient) => (
-              <tr key={patient.id}>
-                <td style={td}>{patient.id}</td>
+              <tr key={patient.patient_id}>
+                <td style={td}>{patient.patient_id}</td>
                 <td style={td}>{patient.first_name}</td>
                 <td style={td}>{patient.last_name}</td>
                 <td style={td}>{patient.email}</td>
                 <td style={td}>{patient.phone || "N/A"}</td>
                 <td style={{ ...td, textAlign: 'right' }}>
-                  <Link to={`/records/${patient.id}`} style={{ textDecoration: 'none', marginRight: '8px' }}>
+                  <Link to={`/records/${patient.patient_id}`} style={{ textDecoration: 'none', marginRight: '8px' }}>
                     <button style={viewBtnStyle}>View Record</button>
                   </Link>
-                  <button onClick={() => handleDelete(patient.id)} style={deleteBtnStyle}>
+                  <button onClick={() => handleDelete(patient.patient_id)} style={deleteBtnStyle}>
                     <Trash2 size={14} />
                   </button>
                 </td>

@@ -35,7 +35,7 @@ if not os.path.exists(instance_dir):
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-app.config["SECRET_KEY"] = "your_shared_secret_key" 
+app.config["SECRET_KEY"] = "your-super-secret-key" 
 
 # ---  INITIALIZE DATABASE ---
 db.init_app(app)
