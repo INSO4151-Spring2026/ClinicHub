@@ -200,6 +200,36 @@ router.put('/patients/:id', authorize([ROLES.RECEPTIONIST, ROLES.ADMIN, ROLES.DO
     return res.status(502).json({ message: "Flask service unreachable" });
   }
 });
+
+router.delete('/patients/:id', authorize([ROLES.RECEPTIONIST, ROLES.ADMIN, ROLES.DOCTOR]), async (req, res) => {
+    try {
+      const patientId = req.params.id;
+      const response = await fetch(`${FLASK_BASE}/api/patients/${patientId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: req.headers.authorization
+        }
+      });
+      // Safely handle response (JSON or text)
+      const text = await response.text();
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { message: text };
+      }
+
+      return res.status(response.status).json(data);
+
+    } catch (err) {
+      console.error("Delete patient error:", err);
+      return res.status(502).json({
+        message: "Flask service unreachable"
+      });
+    }
+  }
+);
 // --- 7. LOGIN ---
 router.post('/login', async (req, res) => {
   try {

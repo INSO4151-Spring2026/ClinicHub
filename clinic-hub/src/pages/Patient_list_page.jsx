@@ -38,19 +38,21 @@ const Patient_list = () => {
 
   // --- 2. CRUD: DELETE (Optional functionality) ---
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this patient?")) {
-      const token = localStorage.getItem('token');
-      try {
-        const response = await fetch(`http://localhost:5000/patients/${id}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (response.ok) {
-          setPatients(patients.filter(p => p.id !== id));
+    if (!window.confirm("Are you sure?")) return;
+
+    const token = localStorage.getItem('token');
+
+    const res = await fetch(`http://localhost:5000/api/patients/${id}`, {
+        method: 'DELETE',
+        headers: {
+        Authorization: `Bearer ${token}`
         }
-      } catch (err) {
-        console.error("Delete failed:", err);
-      }
+    });
+
+    if (res.ok) {
+        setPatients(patients.filter(p => p.patient_id !== id));
+    } else {
+        console.error("Delete failed");
     }
   };
 

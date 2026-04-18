@@ -225,6 +225,29 @@ def update_patient(patient_id):
             "error": str(e)
         }), 500
 
+@api_bp.route('/patients/<int:patient_id>', methods=['DELETE'])
+def delete_patient(patient_id):
+    try:
+        patient = Patient.query.get(patient_id)
+
+        if not patient:
+            return jsonify({"message": "Patient not found"}), 404
+
+        db.session.delete(patient)
+        db.session.commit()
+
+        return jsonify({
+            "message": "Patient deleted successfully",
+            "patient_id": patient_id
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            "message": "Server error",
+            "error": str(e)
+        }), 500
+
 # --- 7. LOGIN ---
 @api_bp.route('/login', methods=['POST'])
 def login():
