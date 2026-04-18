@@ -172,6 +172,34 @@ router.post('/patients', authorize([ROLES.RECEPTIONIST, ROLES.ADMIN, ROLES.DOCTO
   }
 });
 
+router.put('/patients/:id', authorize([ROLES.RECEPTIONIST, ROLES.ADMIN, ROLES.DOCTOR]), async (req, res) => {
+  try {
+    const patientId = req.params.id;
+    const response = await fetch(`${FLASK_BASE}/api/patients/${patientId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': req.headers.authorization,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(req.body)
+    });
+
+    const text = await response.text();
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { message: text };
+    }
+
+    return res.status(response.status).json(data);
+
+  } catch (err) {
+    console.error("Proxy error:", err);
+    return res.status(502).json({ message: "Flask service unreachable" });
+  }
+});
 // --- 7. LOGIN ---
 router.post('/login', async (req, res) => {
   try {

@@ -42,7 +42,7 @@ const Records_page = () => {
     const token = localStorage.getItem('token');
 
     try {
-        const res = await fetch(`http://localhost:5000/patients/${patient.patient_id}`, {
+        const res = await fetch(`http://localhost:5000/api/patients/${id}`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
@@ -51,14 +51,26 @@ const Records_page = () => {
         body: JSON.stringify(patient)
         });
 
+        const text = await res.text(); // safer debug
+
+        let data;
+        try {
+        data = JSON.parse(text);
+        } catch {
+        console.error("Non-JSON response:", text);
+        throw new Error("Backend did not return JSON");
+        }
+
         if (res.ok) {
         alert("✅ Patient updated");
         setIsEditing(false);
         } else {
-        alert("❌ Failed to update");
+        alert(data.message || "❌ Failed to update");
         }
+
     } catch (err) {
-        console.error(err);
+        console.error("Save error:", err);
+        alert("Server connection error");
     }
   };
 

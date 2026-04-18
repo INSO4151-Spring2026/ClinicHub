@@ -176,6 +176,55 @@ def create_patient():
         db.session.rollback()
         return jsonify({"error": str(e)}), 400
 
+@api_bp.route('/patients/<int:patient_id>', methods=['PUT'])
+def update_patient(patient_id):
+    try:
+        patient = Patient.query.get(patient_id)
+
+        if not patient:
+            return jsonify({"message": "Patient not found"}), 404
+
+        data = request.get_json()
+
+        # Update only allowed fields (safe approach)
+        patient.first_name = data.get('first_name', patient.first_name)
+        patient.last_name = data.get('last_name', patient.last_name)
+        patient.email = data.get('email', patient.email)
+        patient.phone = data.get('phone', patient.phone)
+        patient.address = data.get('address', patient.address)
+        patient.sex = data.get('sex', patient.sex)
+
+        # DOB handling (string → date)
+        if data.get('dob'):
+            try:
+                patient.dob = datetime.strptime(data['dob'], '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({"message": "Invalid date format (use YYYY-MM-DD)"}), 400
+
+        # Emergency contact fields (if you use them)
+        patient.emergency_contact_name = data.get(
+            'emergency_contact_name',
+            getattr(patient, 'emergency_contact_name', None)
+        )
+        patient.emergency_contact_phone = data.get(
+            'emergency_contact_phone',
+            getattr(patient, 'emergency_contact_phone', None)
+        )
+
+        db.session.commit()
+
+        return jsonify({
+            "message": "Patient updated successfully",
+            "patient_id": patient.patient_id
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            "message": "Server error",
+            "error": str(e)
+        }), 500
+
 # --- 7. LOGIN ---
 @api_bp.route('/login', methods=['POST'])
 def login():
