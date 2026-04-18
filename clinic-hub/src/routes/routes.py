@@ -117,8 +117,33 @@ def list_patients():
         "patient_id": p.patient_id,
         "first_name": p.first_name,
         "last_name": p.last_name,
-        "email": p.email
+        "email": p.email,
+        "phone": p.phone
     } for p in patients]), 200
+
+@api_bp.route('/patients/<int:patient_id>', methods=['GET'])
+def get_patient(patient_id):
+    try:
+        patient = Patient.query.get(patient_id)
+
+        if not patient:
+            return jsonify({"message": "Patient not found"}), 404
+
+        return jsonify({
+            "patient_id": patient.patient_id,
+            "first_name": patient.first_name,
+            "last_name": patient.last_name,
+            "dob": patient.dob.strftime('%Y-%m-%d') if patient.dob else None,
+            "sex": patient.sex,
+            "email": patient.email,
+            "phone": patient.phone,
+            "address": patient.address,
+            "emergency_contact_name": patient.emergency_contact_name,
+            "emergency_contact_phone": patient.emergency_contact_phone
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @api_bp.route('/patients', methods=['POST'])
 def create_patient():

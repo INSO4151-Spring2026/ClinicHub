@@ -13,53 +13,71 @@ const Records_page = () => {
   // Sync state if the ID in the URL changes
   useEffect(() => {
     const fetchPatientData = async () => {
-        const token = localStorage.getItem('token');
-        try {
-        // Matches router.get('/patient/:id/records'...) in user_routes.js
-        const response = await fetch(`http://localhost:5000/patient/${id}/records`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+      const token = localStorage.getItem('token');
+
+      try {
+        const response = await fetch(`http://localhost:5000/api/patients/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
         });
 
         if (response.ok) {
-            const data = await response.json();
-            // Set the state to the data returned by the backend
-            setPatient(data);
+          const data = await response.json();
+          setPatient(data);
+        } else if (response.status === 404) {
+          setPatient(null);
         } else {
-            console.error("Failed to fetch patient records");
+          console.error("Failed to fetch patient");
         }
-        } catch (err) {
+      } catch (err) {
         console.error("Connection error:", err);
-        } finally {
+      } finally {
         setLoading(false);
-        }
+      }
     };
 
     fetchPatientData();
-    }, [id]);
+  }, [id]);
 
   const handleSave = async () => {
     const token = localStorage.getItem('token');
+
     try {
-        const response = await fetch(`http://localhost:5000/patient/${id}/records`, {
+        const res = await fetch(`http://localhost:5000/patients/${patient.patient_id}`, {
         method: 'PUT',
-        headers: { 
+        headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}` 
+            Authorization: `Bearer ${token}`
         },
         body: JSON.stringify(patient)
         });
 
-        if (response.ok) {
+        if (res.ok) {
+        alert("✅ Patient updated");
         setIsEditing(false);
-        alert(`Successfully updated record for ID: ${id}`);
+        } else {
+        alert("❌ Failed to update");
         }
     } catch (err) {
-        alert("Update failed. Backend route might not be ready.");
+        console.error(err);
     }
   };
 
-  if (loading) return <div style={container}>Loading patient records...</div>;
-  if (!patient) return <div style={container}>Patient record not found.</div>;
+  // Loading state
+  if (loading) {
+    return <div style={{ padding: '20px' }}>Loading patient...</div>;
+  }
+
+  // Not found state
+  if (!patient) {
+    return (
+      <div style={{ padding: '20px' }}>
+        <h2>Patient not found</h2>
+        <button onClick={() => navigate('/patients')}>
+          <ArrowLeft size={16} /> Back to list
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div style={container}>
@@ -77,7 +95,7 @@ const Records_page = () => {
               <h2 style={{ margin: 0, color: '#333' }}>
                 {isEditing ? "Editing Record" : "Patient Profile"}
               </h2>
-              <p style={{ margin: '4px 0 0 0', color: '#666', fontWeight: 'bold' }}>ID: #{patient.id}</p>
+              <p style={{ margin: '4px 0 0 0', color: '#666', fontWeight: 'bold' }}>ID: #{patient.patient_id}</p>
             </div>
           </div>
           <button 
