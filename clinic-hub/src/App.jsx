@@ -8,6 +8,8 @@ import Vitals_page from './pages/Vitals_page'
 import Plan_page from './pages/Plan_page'
 import Reports_page from './pages/Reports_page'
 import Calendar_page from './pages/Calendar_page' // Added import
+import Patient_list_page from './pages/Patient_list_page'
+import Records_page from './pages/Records_page'
 
 // --- HOME COMPONENT ---
 const Home = ({ role, handleRoleChange }) => (
@@ -82,6 +84,7 @@ const Home = ({ role, handleRoleChange }) => (
         {role === 'Admin' && <Link to="/reports" style={{ textDecoration: 'none' }}><button style={greyBtn}>Financial Reports</button></Link>}
         {(role === 'Admin' || role === 'Doctor') && <Link to="/vitals" style={{ textDecoration: 'none' }}><button style={greyBtn}>Vitals Entry</button></Link>}
         {(role === 'Admin' || role === 'Receptionist') && <Link to="/create-patient" style={{ textDecoration: 'none' }}><button style={greyBtn}>Create Patient</button></Link>}
+        {(role === 'Admin' || role === 'Receptionist' || role === 'Doctor') && (<Link to="/patients" style={{ textDecoration: 'none' }}><button style={greyBtn}>Patient List</button></Link>)}
         {role && <Link to="/appointment" style={{ textDecoration: 'none' }}><button style={greyBtn}>Appointments</button></Link>}
       </div>
     </section>
@@ -170,6 +173,12 @@ function App() {
         </ProtectedRoute>
       } />
 
+      <Route path="/patients" element={
+        <ProtectedRoute role={role} allowedRoles={['Admin', 'Doctor', 'Receptionist']}>
+          <Patient_list_page />
+        </ProtectedRoute>
+      } />
+
       <Route path="/appointment" element={
         <ProtectedRoute role={role} allowedRoles={['Admin', 'Doctor', 'Receptionist']}>
           <Appointment_page />
@@ -179,6 +188,12 @@ function App() {
       <Route path="/reports" element={
         <ProtectedRoute role={role} allowedRoles={['Admin']}>
           <Reports_page />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/records/:id" element={
+        <ProtectedRoute role={role} allowedRoles={['Admin', 'Doctor', 'Receptionist']}>
+          <Records_page />
         </ProtectedRoute>
       } />
     </Routes>

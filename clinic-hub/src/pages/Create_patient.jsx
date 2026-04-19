@@ -61,7 +61,7 @@ function Create_patient() {
 
       if (response.ok) {
         alert("✅ Patient created successfully!");
-        navigate('/'); // Use navigate here to move only after successful POST
+        navigate('/patients'); // Use navigate here to move only after successful POST
       } else if (response.status === 403) {
         alert("🚫 Access Denied: You don't have permission to create patients.");
       } else {
