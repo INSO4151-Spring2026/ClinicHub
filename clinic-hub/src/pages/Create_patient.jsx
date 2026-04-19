@@ -80,29 +80,29 @@ function Create_patient() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           {/* First Name div */}
           <div>
-            <label style={{ display: 'block', marginBottom: '4px' }}>First Name</label>
-            <input value={first_name} onChange={(e) => set_first_name(e.target.value)} required style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }} />
+            <label htmlFor="first_name" style={{ display: 'block', marginBottom: '4px' }}>First Name</label>
+            <input id="first_name" value={first_name} onChange={(e) => set_first_name(e.target.value)} required style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}/>
           </div>
           {/* Last Name div */}
           <div>
-            <label style={{ display: 'block', marginBottom: '4px' }}>Last Name</label>
-            <input value={last_name} onChange={(e) => set_last_name(e.target.value)} required style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }} />
+            <label htmlFor="last_name" style={{ display: 'block', marginBottom: '4px' }}>Last Name</label>
+            <input id="last_name" value={last_name} onChange={(e) => set_last_name(e.target.value)} required style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}/>
           </div>
         </div>
         {/* Second Last Name div */}
         <div style={{ marginTop: '12px' }}>
-          <label style={{ display: 'block', marginBottom: '4px' }}>Second Last Name</label>
-          <input value={last_name_2} onChange={(e) => set_last_name_2(e.target.value)} style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }} />
+          <label htmlFor="last_name_2" style={{ display: 'block', marginBottom: '4px' }}>Second Last Name</label>
+          <input id="last_name_2" value={last_name_2} onChange={(e) => set_last_name_2(e.target.value)} style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}/>
         </div>
         {/* Date of Birth div */}
         <div style={{ marginTop: '12px' }}>
-          <label style={{ display: 'block', marginBottom: '4px' }}>Date of Birth</label>
-          <input type="date" value={dob} onChange={(e) => set_Dob(e.target.value)} required style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }} />
+          <label htmlFor="dob" style={{ display: 'block', marginBottom: '4px' }}>Date of Birth</label>
+          <input id="dob" type="date" value={dob} onChange={(e) => set_Dob(e.target.value)} required style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}/>
         </div>
         {/* Sex dropdown div */}
         <div style={{ marginTop: '12px' }}>
-          <label style={{ display: 'block', marginBottom: '4px' }}>Sex</label>
-          <select value={sex} onChange={(e) => set_sex(e.target.value)} required style={{ width: '100%', padding: '8px' }}>
+          <label htmlFor="sex" style={{ display: 'block', marginBottom: '4px' }}>Sex</label>
+          <select id="sex" value={sex} onChange={(e) => set_sex(e.target.value)} required style={{ width: '100%', padding: '8px' }}>
             <option value="">Select</option>
             <option value="female">Female</option>
             <option value="male">Male</option>
@@ -111,28 +111,28 @@ function Create_patient() {
         </div>
         {/* Email div */}
         <div style={{ marginTop: '12px' }}>
-          <label style={{ display: 'block', marginBottom: '4px' }}>Email</label>
-          <input type="email" value={email} onChange={(e) => set_email(e.target.value)} style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }} />
+          <label htmlFor="email" style={{ display: 'block', marginBottom: '4px' }}>Email</label>
+          <input id="email" type="email" value={email} onChange={(e) => set_email(e.target.value)} style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}/>
         </div>
         {/* Phone div */}
         <div style={{ marginTop: '12px' }}>
-          <label style={{ display: 'block', marginBottom: '4px' }}>Phone</label>
-          <input value={phone} onChange={(e) => set_phone(e.target.value)} style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }} />
+          <label htmlFor="phone" style={{ display: 'block', marginBottom: '4px' }}>Phone</label>
+          <input id="phone" value={phone} onChange={(e) => set_phone(e.target.value)} style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}/>
         </div>
         {/* Address div */}
         <div style={{ marginTop: '12px' }}>
-          <label style={{ display: 'block', marginBottom: '4px' }}>Address</label>
-          <input value={address} onChange={(e) => set_address(e.target.value)} style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }} />
+          <label htmlFor="address" style={{ display: 'block', marginBottom: '4px' }}>Address</label>
+          <input id="address" value={address} onChange={(e) => set_address(e.target.value)} style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}/>
         </div>
         {/* Emergency Contact Name div */}
         <div style={{ marginTop: '12px' }}>
-          <label style={{ display: 'block', marginBottom: '4px' }}>Emergency Contact Name</label>
-          <input value={emergency_name} onChange={(e) => set_emergency_name(e.target.value)} style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }} />
+          <label htmlFor="emergency_name" style={{ display: 'block', marginBottom: '4px' }}>Emergency Contact Name</label>
+          <input id="emergency_name" value={emergency_name} onChange={(e) => set_emergency_name(e.target.value)} style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}/>
         </div>
         {/* Emergency Contact Phone div */}
         <div style={{ marginTop: '12px' }}>
-          <label style={{ display: 'block', marginBottom: '4px' }}>Emergency Contact Phone</label>
-          <input value={emergency_phone} onChange={(e) => set_emergency_phone(e.target.value)} style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }} />
+          <label htmlFor="emergency_phone" style={{ display: 'block', marginBottom: '4px' }}>Emergency Contact Phone</label>
+          <input id="emergency_phone" value={emergency_phone} onChange={(e) => set_emergency_phone(e.target.value)} style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}/>
         </div>
         {/* --- IDENTIFICATION PHOTO BOX --- */}
         <div style={{ 

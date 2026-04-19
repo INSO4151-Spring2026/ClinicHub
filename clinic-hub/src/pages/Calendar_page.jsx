@@ -161,7 +161,7 @@ const handleRemove = async (id) => {
                     <div style={{ fontWeight: '600', fontSize: '13px' }}>{appt.patient}</div>
                     <div style={{ fontSize: '11px', color: '#94a3b8' }}>{appt.type}</div>
                   </div>
-                  <button onClick={() => handleRemove(appt.id)} style={deleteIconBtn}>✕</button>
+                  <button onClick={() => handleRemove(appt.id)} style={deleteIconBtn} aria-label={`delete-${appt.id}`}>✕</button>
                 </div>
               ))
             ) : (
