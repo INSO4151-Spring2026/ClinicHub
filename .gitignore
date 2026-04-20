@@ -11,6 +11,10 @@ venv/
 env/
 .venv/
 
+# uv
+pyproject.toml
+uv.lock
+
 # Flask instance folder
 instance/
 
@@ -36,7 +40,6 @@ htmlcov/
 *.db
 
 # Dump files
-*.sql
 *.dump
 
 # =========================
