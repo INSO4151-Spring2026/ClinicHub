@@ -3,6 +3,7 @@ from datetime import datetime, timezone, timedelta
 from app import db
 from app.models.appointment import Appointment
 from app.models.patient import Patient 
+from app.models.invoice import Invoice
 from app.utils.jwt_handler import generate_access_token
 
 # Blueprint definition
@@ -298,3 +299,84 @@ def daily_revenue():
         "transaction_count": 12,
         "data": {"subtotal": 1200.0, "tax": 84.0, "total_revenue": 1284.0}
     }), 200
+
+
+# --- 9. INVOICES ---
+
+@api_bp.route('/invoices', methods=['POST'])
+def create_invoice():
+    """
+    Create a new invoice for an appointment.
+    Expects: appointment_id, cpt_id, patient_id
+    """
+    data = request.get_json()
+
+    required = ["appointment_id", "cpt_id", "patient_id"]
+    if not all(field in data for field in required):
+        return jsonify({"error": "Missing required fields"}), 400
+
+    # Use the model to check for existing invoice
+    existing = Invoice.query.filter_by(appointment_id=data['appointment_id']).first()
+    if existing:
+        return jsonify({"error": "Invoice already exists for this appointment"}), 409
+
+    try:
+        new_invoice = Invoice(
+            appointment_id=data['appointment_id'],
+            cpt_id=data['cpt_id'],
+            patient_id=data['patient_id'],
+            status=data.get('status', 'unpaid')
+        )
+        
+        db.session.add(new_invoice)
+        db.session.commit()
+        
+        return jsonify(new_invoice.to_dict()), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+@api_bp.route('/invoices', methods=['GET'])
+def get_invoices():
+    """Fetch all invoices (filterable by patient_id)"""
+    patient_id = request.args.get('patient_id')
+    
+    query = Invoice.query
+    if patient_id:
+        query = query.filter_by(patient_id=patient_id)
+        
+    invoices = query.all()
+    return jsonify([inv.to_dict() for inv in invoices]), 200
+
+@api_bp.route('/invoices/<int:invoice_id>', methods=['GET'])
+def get_invoice_by_id(invoice_id):
+    """Fetch a single invoice"""
+    
+    invoice = db.session.get(Invoice, invoice_id)
+    if not invoice:
+        return jsonify({"message": "Invoice not found"}), 404
+    return jsonify(invoice.to_dict()), 200
+
+@api_bp.route('/invoices/<int:invoice_id>/pay', methods=['PATCH'])
+def pay_invoice(invoice_id):
+    """Mark an invoice as paid"""
+    invoice = db.session.get(Invoice, invoice_id)
+    if not invoice:
+        return jsonify({"message": "Invoice not found"}), 404
+    
+    if invoice.status == 'paid':
+        return jsonify({"message": "Invoice is already paid"}), 200
+
+    try:
+        invoice.status = 'paid'
+        invoice.paid_at = datetime.now(timezone.utc)
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Payment processed successfully",
+            "invoice": invoice.to_dict()
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
