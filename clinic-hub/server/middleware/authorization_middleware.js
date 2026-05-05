@@ -1,5 +1,8 @@
 import jwt from "jsonwebtoken";
 // middleware/authorization_middleware.js
+
+const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-key";
+
 const authorize = (allowedRoles = []) => {
   return (req, res, next) => {
     const token = req.headers.authorization?.split(" ")[1];
@@ -7,8 +10,7 @@ const authorize = (allowedRoles = []) => {
     if (!token) return res.status(401).json({ message: "No token" });
 
     try {
-      // DEBUG: Hardcode the secret here to match Flask exactly
-      const decoded = jwt.verify(token, "your-super-secret-key");
+      const decoded = jwt.verify(token, JWT_SECRET);
       req.user = decoded;
       console.log("DEBUG: Decoded Role:", decoded.role);
       console.log("DEBUG: Allowed Roles:", allowedRoles);

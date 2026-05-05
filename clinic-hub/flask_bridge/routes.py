@@ -315,7 +315,7 @@ def login():
             return jsonify(
                 {"access_token": token, "role": role_name, "message": "Success"}
             ), 200
-        except Exception as e:
+        except Exception:
             return jsonify({"error": "Token generation failed"}), 500
 
     return jsonify({"message": "Invalid credentials"}), 401

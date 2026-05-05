@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; 
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const Appointment_page = () => {
-  const navigate = useNavigate(); 
-  
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    service: 'Consultation',
-    date: '',
-    time: '',
-    notes: ''
+    name: "",
+    email: "",
+    service: "Consultation",
+    date: "",
+    time: "",
+    notes: "",
   });
 
   const [submitted, setSubmitted] = useState(false);
@@ -20,35 +20,34 @@ const Appointment_page = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
 
     // 1. COMBINE DATE AND TIME
-    // The backend model uses 'scheduled_start' (DateTime). 
-    // We combine your separate date and time fields into one ISO string.
-    const startDateTime = `${formData.date}T${formData.time}:00`;
+    // Backend expects scheduled_start/scheduled_end (ISO-8601 datetime strings)
+    const start = new Date(`${formData.date}T${formData.time}:00`);
+    const end = new Date(start.getTime() + 30 * 60 * 1000);
 
     // 2. DATA MAPPING FOR BACKEND MODEL
     const payload = {
-      // These IDs are required by your model. 
+      // These IDs are required by your model.
       // For now, we use 1 as a placeholder until you add patient/provider selection.
-      patient_id: 1, 
-      provider_user_id: 1, 
-      
-      // Match the model's 'scheduled_start' column
-      appointment_date: startDateTime, 
-      
+      patient_id: 1,
+      provider_user_id: 1,
+
+      scheduled_start: start.toISOString(),
+      scheduled_end: end.toISOString(),
       reason: formData.service,
-      notes: formData.notes
+      notes: formData.notes,
     };
 
     try {
-      const response = await fetch('http://localhost:5000/api/appointments', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
+      const response = await fetch("http://localhost:5000/api/appointments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
       });
@@ -69,97 +68,159 @@ const handleSubmit = async (e) => {
 
   if (submitted) {
     return (
-      <div style={{ textAlign: 'center', padding: '50px' }}>
+      <div style={{ textAlign: "center", padding: "50px" }}>
         <h2>Success! </h2>
-        <p>Your appointment for {formData.service} on {formData.date} at {formData.time} is confirmed.</p>
-        <button onClick={() => setSubmitted(false)} style={buttonStyle}>Book Another</button>
-        <button onClick={() => navigate('/calendar')} style={backButtonStyle}>Go Back to Calendar</button>
+        <p>
+          Your appointment for {formData.service} on {formData.date} at{" "}
+          {formData.time} is confirmed.
+        </p>
+        <button onClick={() => setSubmitted(false)} style={buttonStyle}>
+          Book Another
+        </button>
+        <button onClick={() => navigate("/calendar")} style={backButtonStyle}>
+          Go Back to Calendar
+        </button>
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: '500px', margin: '40px auto', padding: '20px', border: '1px solid #ddd', borderRadius: '8px' }}>
-      <h2 style={{ textAlign: 'center' }}>Schedule an Appointment</h2>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        
+    <div
+      style={{
+        maxWidth: "500px",
+        margin: "40px auto",
+        padding: "20px",
+        border: "1px solid #ddd",
+        borderRadius: "8px",
+      }}
+    >
+      <h2 style={{ textAlign: "center" }}>Schedule an Appointment</h2>
+      <form
+        onSubmit={handleSubmit}
+        style={{ display: "flex", flexDirection: "column", gap: "15px" }}
+      >
         <label>
           Full Name:
-          <input type="text" name="name" value={formData.name} onChange={handleChange} required style={inputStyle} />
+          <input
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            required
+            style={inputStyle}
+          />
         </label>
-        
+
         <label>
           Email:
-          <input type="email" name="email" value={formData.email} onChange={handleChange} required style={inputStyle} />
+          <input
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            required
+            style={inputStyle}
+          />
         </label>
-        
+
         <label>
           Service:
-          <select name="service" value={formData.service} onChange={handleChange} style={inputStyle}>
+          <select
+            name="service"
+            value={formData.service}
+            onChange={handleChange}
+            style={inputStyle}
+          >
             <option value="Consultation">Consultation</option>
             <option value="General Checkup">General Checkup</option>
             <option value="Follow-up">Follow-up</option>
           </select>
         </label>
 
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: "flex", gap: "10px" }}>
           <label style={{ flex: 1 }}>
             Date:
-            <input type="date" name="date" value={formData.date} onChange={handleChange} required style={inputStyle} />
+            <input
+              type="date"
+              name="date"
+              value={formData.date}
+              onChange={handleChange}
+              required
+              style={inputStyle}
+            />
           </label>
           <label style={{ flex: 1 }}>
             Time:
-            <input type="time" name="time" value={formData.time} onChange={handleChange} required style={inputStyle} />
+            <input
+              type="time"
+              name="time"
+              value={formData.time}
+              onChange={handleChange}
+              required
+              style={inputStyle}
+            />
           </label>
         </div>
 
         <label>
           Notes (Optional):
-          <textarea name="notes" value={formData.notes} onChange={handleChange} style={{ ...inputStyle, height: '80px' }} />
+          <textarea
+            name="notes"
+            value={formData.notes}
+            onChange={handleChange}
+            style={{ ...inputStyle, height: "80px" }}
+          />
         </label>
 
-        <button type="submit" style={buttonStyle}>Confirm Booking</button>
+        <button type="submit" style={buttonStyle}>
+          Confirm Booking
+        </button>
       </form>
 
-      <button 
-        onClick={() => navigate('/calendar')} 
-        style={{ ...backButtonStyle, width: '100%', marginTop: '20px', marginLeft: '0' }}
+      <button
+        onClick={() => navigate("/calendar")}
+        style={{
+          ...backButtonStyle,
+          width: "100%",
+          marginTop: "20px",
+          marginLeft: "0",
+        }}
       >
-          Cancel and Return to Calendar
+        Cancel and Return to Calendar
       </button>
     </div>
   );
 };
 
 // --- STYLES ---
-const inputStyle = { 
-    width: '100%', 
-    padding: '8px', 
-    marginTop: '5px', 
-    borderRadius: '4px', 
-    border: '1px solid #ccc', 
-    boxSizing: 'border-box' 
+const inputStyle = {
+  width: "100%",
+  padding: "8px",
+  marginTop: "5px",
+  borderRadius: "4px",
+  border: "1px solid #ccc",
+  boxSizing: "border-box",
 };
 
-const buttonStyle = { 
-    backgroundColor: '#28a745', 
-    color: 'white', 
-    padding: '10px', 
-    border: 'none', 
-    borderRadius: '4px', 
-    cursor: 'pointer', 
-    fontSize: '16px' 
+const buttonStyle = {
+  backgroundColor: "#28a745",
+  color: "white",
+  padding: "10px",
+  border: "none",
+  borderRadius: "4px",
+  cursor: "pointer",
+  fontSize: "16px",
 };
 
-const backButtonStyle = { 
-    backgroundColor: '#6c757d', 
-    color: 'white', 
-    padding: '10px', 
-    border: 'none', 
-    borderRadius: '4px', 
-    cursor: 'pointer', 
-    fontSize: '16px',
-    marginLeft: '10px' 
+const backButtonStyle = {
+  backgroundColor: "#6c757d",
+  color: "white",
+  padding: "10px",
+  border: "none",
+  borderRadius: "4px",
+  cursor: "pointer",
+  fontSize: "16px",
+  marginLeft: "10px",
 };
 
 export default Appointment_page;

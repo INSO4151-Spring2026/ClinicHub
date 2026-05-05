@@ -1,6 +1,6 @@
 Steps to run the web page: need cd in app
 1.
-cd clinic_hub
+cd clinic-hub
 2.
 npm install
 3.
@@ -9,17 +9,17 @@ npm run dev
 
 Run node server, need cd in app
 1.
-cd clinic_hub
+cd clinic-hub
 2.
 node server/index.js
 
 to run all pages and servers, starts the node(rbac), flask request sender, need cd in app
 1.
-cd clinic_hub
+cd clinic-hub
 2.
 npm run start-all
 
-This starts the flask server for the db. need cd in backend
+This starts the Flask backend API (source of truth). It runs on port 5002.
 DB:
 1. 
 docker
@@ -39,6 +39,8 @@ DB_USER=postgres
 DB_PASSWORD=clinichub2026
 5. 
 python run.py
+
+Note: In development, the backend defaults to using backend/instance/clinic.db (SQLite) unless you set DATABASE_URL.
 
 These need the to be cd in test
 test pytest 

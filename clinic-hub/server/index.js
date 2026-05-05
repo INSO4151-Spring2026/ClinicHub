@@ -6,8 +6,7 @@ import userRoutes from "./routes/user_routes.js";
 
 const app = express();
 const upload = multer();
-// const JWT_SECRET = "your-super-secret-key";
-const JWT_SECRET = "clinic-hub-secret-2026";
+const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-key";
 
 app.use(express.json());
 app.use(

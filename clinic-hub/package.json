@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "server": "node server/index.js",
-    "flask": "python flask_bridge/app.py",
+    "flask": "python ../backend/run.py",
     "start-all": "concurrently \"npm run dev\" \"npm run server\" \"npm run flask\"",
     "build": "vite build",
     "lint": "eslint .",
