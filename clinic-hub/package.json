@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "server": "node src/server.js",
-    "flask": "python src/app.py",
+    "server": "node server/index.js",
+    "flask": "python ../backend/run.py",
     "start-all": "concurrently \"npm run dev\" \"npm run server\" \"npm run flask\"",
     "build": "vite build",
     "lint": "eslint .",
@@ -43,12 +43,21 @@
   },
   "jest": {
     "testEnvironment": "jsdom",
-    "setupFiles": ["<rootDir>/setupTests.js"],
-    "setupFilesAfterEnv": ["@testing-library/jest-dom"],
+    "setupFiles": [
+      "<rootDir>/setupTests.js"
+    ],
+    "setupFilesAfterEnv": [
+      "@testing-library/jest-dom"
+    ],
     "transform": {
       "^.+\\.(js|jsx)$": "babel-jest"
     },
-    "moduleFileExtensions": ["js", "jsx"],
-    "testMatch": ["<rootDir>/jest_tests/**/*.test.jsx"]
+    "moduleFileExtensions": [
+      "js",
+      "jsx"
+    ],
+    "testMatch": [
+      "<rootDir>/jest_tests/**/*.test.jsx"
+    ]
   }
 }

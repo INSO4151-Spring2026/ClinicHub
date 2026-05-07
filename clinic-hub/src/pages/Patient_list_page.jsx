@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react'; // Added useEffect
-import { Search, UserPlus, Trash2 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react"; // Added useEffect
+import { Search, UserPlus, Trash2 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 
 const Patient_list = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -11,21 +11,26 @@ const Patient_list = () => {
   // --- 1. CRUD: READ (Fetch data from Express Gateway) ---
   useEffect(() => {
     const fetchPatients = async () => {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       try {
         // Calling port 5000 (Express) which proxies to port 5002 (Flask)
-        const response = await fetch('http://localhost:5000/api/patients', {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const response = await fetch("http://localhost:5000/api/patients", {
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         if (response.status === 401) {
-          navigate('/login'); // Redirect if token is missing/expired
+          navigate("/login"); // Redirect if token is missing/expired
           return;
         }
 
         const data = await response.json();
-        // Assuming your backend returns an array of patients
-        setPatients(Array.isArray(data) ? data : []);
+        // Backend returns either an array (legacy) or { patients: [...], pagination: {...} }
+        const normalized = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.patients)
+            ? data.patients
+            : [];
+        setPatients(normalized);
       } catch (err) {
         console.error("Error loading patients:", err);
       } finally {
@@ -40,19 +45,19 @@ const Patient_list = () => {
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure?")) return;
 
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
 
     const res = await fetch(`http://localhost:5000/api/patients/${id}`, {
-        method: 'DELETE',
-        headers: {
-        Authorization: `Bearer ${token}`
-        }
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
 
     if (res.ok) {
-        setPatients(patients.filter(p => p.patient_id !== id));
+      setPatients(patients.filter((p) => p.patient_id !== id));
     } else {
-        console.error("Delete failed");
+      console.error("Delete failed");
     }
   };
 
@@ -61,19 +66,24 @@ const Patient_list = () => {
     const searchString = searchTerm.toLowerCase();
     // Using snake_case keys (first_name) to match your Python backend
     return (
-      (patient.first_name?.toLowerCase().includes(searchString)) ||
-      (patient.last_name?.toLowerCase().includes(searchString)) ||
-      (patient.email?.toLowerCase().includes(searchString))
+      patient.first_name?.toLowerCase().includes(searchString) ||
+      patient.last_name?.toLowerCase().includes(searchString) ||
+      patient.email?.toLowerCase().includes(searchString)
     );
   });
 
-  if (loading) return <div style={{ ...container, textAlign: 'center' }}>Loading Patients...</div>;
+  if (loading)
+    return (
+      <div style={{ ...container, textAlign: "center" }}>
+        Loading Patients...
+      </div>
+    );
 
   return (
     <div style={container}>
       <div style={headerSection}>
         <h2 style={{ margin: 0, color: "#090909" }}>Patient List</h2>
-        
+
         <div style={actionsContainer}>
           <div style={searchContainer}>
             <Search size={18} style={searchIcon} />
@@ -86,9 +96,9 @@ const Patient_list = () => {
             />
           </div>
 
-          <Link to="/create-patient" style={{ textDecoration: 'none' }}>
+          <Link to="/create-patient" style={{ textDecoration: "none" }}>
             <button style={addButton}>
-              <UserPlus size={18} style={{ marginRight: '8px' }} />
+              <UserPlus size={18} style={{ marginRight: "8px" }} />
               Add Patient
             </button>
           </Link>
@@ -103,7 +113,7 @@ const Patient_list = () => {
             <th style={table_header}>Last Name</th>
             <th style={table_header}>Email</th>
             <th style={table_header}>Phone</th>
-            <th style={{ ...table_header, textAlign: 'right' }}>Actions</th>
+            <th style={{ ...table_header, textAlign: "right" }}>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -115,11 +125,17 @@ const Patient_list = () => {
                 <td style={td}>{patient.last_name}</td>
                 <td style={td}>{patient.email}</td>
                 <td style={td}>{patient.phone || "N/A"}</td>
-                <td style={{ ...td, textAlign: 'right' }}>
-                  <Link to={`/records/${patient.patient_id}`} style={{ textDecoration: 'none', marginRight: '8px' }}>
+                <td style={{ ...td, textAlign: "right" }}>
+                  <Link
+                    to={`/records/${patient.patient_id}`}
+                    style={{ textDecoration: "none", marginRight: "8px" }}
+                  >
                     <button style={viewBtnStyle}>View Record</button>
                   </Link>
-                  <button onClick={() => handleDelete(patient.patient_id)} style={deleteBtnStyle}>
+                  <button
+                    onClick={() => handleDelete(patient.patient_id)}
+                    style={deleteBtnStyle}
+                  >
                     <Trash2 size={14} />
                   </button>
                 </td>
@@ -127,7 +143,15 @@ const Patient_list = () => {
             ))
           ) : (
             <tr>
-              <td colSpan="6" style={{ ...td, textAlign: 'center', padding: '30px', color: '#888' }}>
+              <td
+                colSpan="6"
+                style={{
+                  ...td,
+                  textAlign: "center",
+                  padding: "30px",
+                  color: "#888",
+                }}
+              >
                 No patients found matching "{searchTerm}"
               </td>
             </tr>
@@ -146,7 +170,7 @@ const container = {
   backgroundColor: "#fff",
   borderRadius: "10px",
   boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-  fontFamily: "Inter, system-ui, sans-serif"
+  fontFamily: "Inter, system-ui, sans-serif",
 };
 
 const headerSection = {
@@ -155,13 +179,13 @@ const headerSection = {
   alignItems: "center",
   marginBottom: "25px",
   flexWrap: "wrap",
-  gap: "15px"
+  gap: "15px",
 };
 
 const actionsContainer = {
   display: "flex",
   alignItems: "center",
-  gap: "12px"
+  gap: "12px",
 };
 
 const searchContainer = {
@@ -174,7 +198,7 @@ const searchIcon = {
   left: "12px",
   top: "50%",
   transform: "translateY(-50%)",
-  color: "#888"
+  color: "#888",
 };
 
 const searchInput = {
@@ -185,7 +209,7 @@ const searchInput = {
   fontSize: "14px",
   outline: "none",
   color: "#333",
-  backgroundColor: "#fcfcfc"
+  backgroundColor: "#fcfcfc",
 };
 
 const addButton = {
@@ -199,13 +223,13 @@ const addButton = {
   fontSize: "14px",
   fontWeight: "600",
   cursor: "pointer",
-  boxShadow: "0 2px 4px rgba(0, 123, 255, 0.2)"
+  boxShadow: "0 2px 4px rgba(0, 123, 255, 0.2)",
 };
 
 const table = {
   width: "100%",
   borderCollapse: "collapse",
-  marginTop: "10px"
+  marginTop: "10px",
 };
 
 const table_header = {
@@ -216,14 +240,14 @@ const table_header = {
   color: "#444",
   fontSize: "13px",
   fontWeight: "bold",
-  textTransform: "uppercase"
+  textTransform: "uppercase",
 };
 
 const td = {
   padding: "14px 12px",
   borderBottom: "1px solid #eee",
   color: "#333",
-  fontSize: "14px"
+  fontSize: "14px",
 };
 
 const viewBtnStyle = {
@@ -234,7 +258,7 @@ const viewBtnStyle = {
   borderRadius: "4px",
   cursor: "pointer",
   fontSize: "12px",
-  fontWeight: "bold"
+  fontWeight: "bold",
 };
 
 const deleteBtnStyle = {
@@ -245,7 +269,7 @@ const deleteBtnStyle = {
   borderRadius: "4px",
   cursor: "pointer",
   display: "inline-flex",
-  alignItems: "center"
+  alignItems: "center",
 };
 
 export default Patient_list;
