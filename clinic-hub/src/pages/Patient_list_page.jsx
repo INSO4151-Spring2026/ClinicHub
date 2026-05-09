@@ -4,19 +4,52 @@ import { Link, useNavigate } from "react-router-dom";
 
 const Patient_list = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [patients, setPatients] = useState([]); // State for backend data
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [perPage] = useState(10);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    pages: 1,
+    page: 1,
+    per_page: 10,
+    has_next: false,
+    has_prev: false,
+  });
   const navigate = useNavigate();
+
+  // Debounce search so we don't refetch on every single keystroke.
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 250);
+
+    return () => clearTimeout(handle);
+  }, [searchTerm]);
 
   // --- 1. CRUD: READ (Fetch data from Express Gateway) ---
   useEffect(() => {
     const fetchPatients = async () => {
       const token = localStorage.getItem("token");
       try {
-        // Calling port 5000 (Express) which proxies to port 5002 (Flask)
-        const response = await fetch("http://localhost:5000/api/patients", {
-          headers: { Authorization: `Bearer ${token}` },
+        setLoading(true);
+        const params = new URLSearchParams({
+          page: String(page),
+          per_page: String(perPage),
         });
+
+        if (debouncedSearchTerm) {
+          params.set("search", debouncedSearchTerm);
+        }
+
+        // Calling port 5000 (Express) which proxies to port 5002 (Flask)
+        const response = await fetch(
+          `http://localhost:5000/api/patients?${params.toString()}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
 
         if (response.status === 401) {
           navigate("/login"); // Redirect if token is missing/expired
@@ -24,13 +57,28 @@ const Patient_list = () => {
         }
 
         const data = await response.json();
+
         // Backend returns either an array (legacy) or { patients: [...], pagination: {...} }
-        const normalized = Array.isArray(data)
+        const normalizedPatients = Array.isArray(data)
           ? data
           : Array.isArray(data?.patients)
             ? data.patients
             : [];
-        setPatients(normalized);
+        setPatients(normalizedPatients);
+
+        if (!Array.isArray(data) && data?.pagination) {
+          setPagination(data.pagination);
+        } else {
+          // Fallback for legacy array response.
+          setPagination({
+            total: normalizedPatients.length,
+            pages: 1,
+            page: 1,
+            per_page: normalizedPatients.length,
+            has_next: false,
+            has_prev: false,
+          });
+        }
       } catch (err) {
         console.error("Error loading patients:", err);
       } finally {
@@ -39,7 +87,7 @@ const Patient_list = () => {
     };
 
     fetchPatients();
-  }, [navigate]);
+  }, [navigate, page, perPage, debouncedSearchTerm]);
 
   // --- 2. CRUD: DELETE (Optional functionality) ---
   const handleDelete = async (id) => {
@@ -55,29 +103,11 @@ const Patient_list = () => {
     });
 
     if (res.ok) {
-      setPatients(patients.filter((p) => p.patient_id !== id));
+      setPatients((prev) => prev.filter((p) => p.patient_id !== id));
     } else {
       console.error("Delete failed");
     }
   };
-
-  // --- Search Logic ---
-  const filteredPatients = patients.filter((patient) => {
-    const searchString = searchTerm.toLowerCase();
-    // Using snake_case keys (first_name) to match your Python backend
-    return (
-      patient.first_name?.toLowerCase().includes(searchString) ||
-      patient.last_name?.toLowerCase().includes(searchString) ||
-      patient.email?.toLowerCase().includes(searchString)
-    );
-  });
-
-  if (loading)
-    return (
-      <div style={{ ...container, textAlign: "center" }}>
-        Loading Patients...
-      </div>
-    );
 
   return (
     <div style={container}>
@@ -91,10 +121,15 @@ const Patient_list = () => {
               type="text"
               placeholder="Search patients..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPage(1);
+              }}
               style={searchInput}
             />
           </div>
+
+          {loading ? <div style={loadingInline}>Loading…</div> : null}
 
           <Link to="/create-patient" style={{ textDecoration: "none" }}>
             <button style={addButton}>
@@ -117,8 +152,22 @@ const Patient_list = () => {
           </tr>
         </thead>
         <tbody>
-          {filteredPatients.length > 0 ? (
-            filteredPatients.map((patient) => (
+          {loading ? (
+            <tr>
+              <td
+                colSpan="6"
+                style={{
+                  ...td,
+                  textAlign: "center",
+                  padding: "30px",
+                  color: "#888",
+                }}
+              >
+                Loading Patients...
+              </td>
+            </tr>
+          ) : patients.length > 0 ? (
+            patients.map((patient) => (
               <tr key={patient.patient_id}>
                 <td style={td}>{patient.patient_id}</td>
                 <td style={td}>{patient.first_name}</td>
@@ -158,6 +207,39 @@ const Patient_list = () => {
           )}
         </tbody>
       </table>
+
+      <div style={paginationBar}>
+        <button
+          type="button"
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          disabled={!pagination?.has_prev || page <= 1}
+          style={{
+            ...paginationBtn,
+            opacity: !pagination?.has_prev || page <= 1 ? 0.6 : 1,
+            cursor:
+              !pagination?.has_prev || page <= 1 ? "not-allowed" : "pointer",
+          }}
+        >
+          Prev
+        </button>
+
+        <div style={pageInfo}>
+          Page {pagination?.page ?? page} of {pagination?.pages ?? 1}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setPage((p) => p + 1)}
+          disabled={!pagination?.has_next}
+          style={{
+            ...paginationBtn,
+            opacity: !pagination?.has_next ? 0.6 : 1,
+            cursor: !pagination?.has_next ? "not-allowed" : "pointer",
+          }}
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 };
@@ -186,6 +268,12 @@ const actionsContainer = {
   display: "flex",
   alignItems: "center",
   gap: "12px",
+};
+
+const loadingInline = {
+  fontSize: "13px",
+  color: "#666",
+  paddingLeft: "4px",
 };
 
 const searchContainer = {
@@ -270,6 +358,28 @@ const deleteBtnStyle = {
   cursor: "pointer",
   display: "inline-flex",
   alignItems: "center",
+};
+
+const paginationBar = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginTop: "16px",
+};
+
+const paginationBtn = {
+  padding: "8px 12px",
+  backgroundColor: "#fff",
+  color: "#333",
+  border: "1px solid #e0e0e0",
+  borderRadius: "6px",
+  fontSize: "13px",
+  fontWeight: "600",
+};
+
+const pageInfo = {
+  fontSize: "13px",
+  color: "#666",
 };
 
 export default Patient_list;

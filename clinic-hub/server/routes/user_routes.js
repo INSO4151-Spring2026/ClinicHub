@@ -149,7 +149,18 @@ router.get(
   authorize([ROLES.RECEPTIONIST, ROLES.ADMIN, ROLES.DOCTOR]),
   async (req, res) => {
     try {
-      const response = await fetch(`${FLASK_BASE}/api/patients`, {
+      const url = new URL(`${FLASK_BASE}/api/patients`);
+
+      // Forward any pagination/search/sort query params to Flask.
+      for (const [key, value] of Object.entries(req.query ?? {})) {
+        if (Array.isArray(value)) {
+          value.forEach((v) => url.searchParams.append(key, String(v)));
+        } else if (value !== undefined && value !== null) {
+          url.searchParams.set(key, String(value));
+        }
+      }
+
+      const response = await fetch(url, {
         method: "GET",
         headers: { Authorization: req.headers.authorization },
       });
