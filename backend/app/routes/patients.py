@@ -3,6 +3,7 @@ from app import db
 from app.models.patient import Patient
 from app.utils.decorators import require_auth, require_role
 from datetime import datetime
+from sqlalchemy import and_, or_
 import logging
 
 logger = logging.getLogger(__name__)
@@ -284,15 +285,33 @@ def list_patients():
         query = Patient.query
 
         # Apply search filter if provided
+        # Supports multi-term searches like "John Anderson" by requiring each term
+        # to match (order-agnostic) across first_name / last_name / email.
         if search:
-            search_filter = f"%{search}%"
-            query = query.filter(
-                db.or_(
-                    Patient.first_name.ilike(search_filter),
-                    Patient.last_name.ilike(search_filter),
-                    Patient.email.ilike(search_filter),
+            terms = [t.strip(" ,;.\t\n\r") for t in search.split()]
+            terms = [t for t in terms if t]
+
+            if len(terms) == 1:
+                search_filter = f"%{terms[0]}%"
+                query = query.filter(
+                    or_(
+                        Patient.first_name.ilike(search_filter),
+                        Patient.last_name.ilike(search_filter),
+                        Patient.email.ilike(search_filter),
+                    )
                 )
-            )
+            else:
+                per_term_filters = []
+                for term in terms:
+                    term_filter = f"%{term}%"
+                    per_term_filters.append(
+                        or_(
+                            Patient.first_name.ilike(term_filter),
+                            Patient.last_name.ilike(term_filter),
+                            Patient.email.ilike(term_filter),
+                        )
+                    )
+                query = query.filter(and_(*per_term_filters))
 
         # Apply sorting
         sort_column = getattr(Patient, sort_by)
