@@ -66,7 +66,11 @@ def _seed_dev_users():
 
 
 app = create_app("development")
-
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    "pool_size": 100,           # Allow 100 simultaneous DB connections
+    "max_overflow": 50,          # Allow 50 extra during heavy spikes
+    "pool_timeout": 30           # Users wait 30s for a slot before failing
+}
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()  # Creates tables if they don't exist yet
