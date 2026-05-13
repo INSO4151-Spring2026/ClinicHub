@@ -1,259 +1,244 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { ShieldCheck, Camera, CheckCircle, AlertCircle } from 'lucide-react'
+
+const CARRIERS = [
+  'BlueCross BlueShield', 'Aetna', 'UnitedHealthcare',
+  'Cigna', 'Medicare', 'Medicaid', 'Self-Pay / No Insurance',
+]
+
+const PLAN_TYPES = ['HMO', 'PPO', 'EPO', 'POS']
 
 function Plan_page() {
-  const navigate = useNavigate();
-  
-  const [billingData, setBillingData] = useState({
-    member_id: '',      
-    group_id: '',       
-    plan_type: 'PPO',  
-    carrier_name: '',  
-    effective_date: '',
-    copay: ''
+  const navigate = useNavigate()
+
+  const [billing, setBilling] = useState({
+    member_id: '', group_id: '', plan_type: 'PPO',
+    carrier_name: '', effective_date: '', copay: '',
   })
- // State for ID Photo
-  const [id_photo, setIdPhoto] = useState(null)
-  const [previewUrl, setPreviewUrl] = useState(null)
+  const [id_photo, setIdPhoto]   = useState(null)
+  const [previewUrl, setPreview] = useState(null)
+  const [loading, setLoading]    = useState(false)
+  const [error, setError]        = useState('')
+
+  const set = (key) => (e) =>
+    setBilling((b) => ({ ...b, [key]: e.target.value }))
 
   const handleFileChange = (e) => {
     const file = e.target.files[0]
     if (file) {
       setIdPhoto(file)
-      setPreviewUrl(URL.createObjectURL(file))
+      setPreview(URL.createObjectURL(file))
     }
   }
-  const handleChange = (e) => {
-    const { name, value } = e.target
-    setBillingData(prev => ({ ...prev, [name]: value }))
-  }
 
-const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
 
-    // 1. Prepare the data
-    // Use FormData when you need to send files (like id_photo)
-    const formData = new FormData();
-    formData.append('member_id', billingData.member_id);
-    formData.append('group_id', billingData.group_id);
-    formData.append('plan_type', billingData.plan_type);
-    formData.append('carrier_name', billingData.carrier_name);
-    formData.append('effective_date', billingData.effective_date);
-    formData.append('copay', billingData.copay);
-    
-    if (id_photo) {
-      formData.append('id_photo', id_photo);
-    }
+    const formData = new FormData()
+    Object.entries(billing).forEach(([k, v]) => formData.append(k, v))
+    if (id_photo) formData.append('id_photo', id_photo)
 
-    // 2. Get the token from login
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token')
 
     try {
       const response = await fetch('http://localhost:5000/api/billing', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}` 
-        },
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
-      });
+      })
 
       if (response.ok) {
-        const result = await response.json();
-        alert("✅ Billing information saved successfully!");
-        console.log('Server Response:', result);
-        navigate('/'); 
+        navigate('/')
       } else if (response.status === 403) {
-        alert("🚫 Access Denied: Only Receptionists or Admins can save billing info.");
+        setError('Access denied: Only Receptionists or Admins can save billing information.')
       } else {
-        alert("⚠️ Error saving data. Check the server logs.");
+        setError('Could not save billing information. Please check your input.')
       }
-    } catch (err) {
-      console.error("Submission error:", err);
-      alert("❌ Connection Failed: Is your Node server running?");
+    } catch {
+      setError('Connection failed. Is the Node server running?')
+    } finally {
+      setLoading(false)
     }
-  };
+  }
 
   return (
-    <div style={{ maxWidth: '600px', margin: '40px auto', padding: '30px', border: '1px solid #ddd', borderRadius: '12px', fontFamily: 'Arial, sans-serif'}}>
-      <h1 style={{ textAlign: 'center', color: '#333' }}>Health Plan Billing Details</h1>
-      <p style={{ textAlign: 'center', color: '#666', marginBottom: '25px' }}>Enter the information exactly as it appears on the insurance card.</p>
-      
-      <form onSubmit={handleSubmit}>
-        {/* Insurance Carrier */}
-        <div style={groupStyle}>
-          <label style={labelStyle}>Insurance Carrier Name:</label>
-          <select 
-            name="carrier_name"
-            value={billingData.carrier_name}
-            onChange={handleChange}
-            required 
-            style={inputStyle}
-          >
-            <option value="">-- Select Insurance Carrier --</option>
-            <option value="BlueCross BlueShield">BlueCross BlueShield</option>
-            <option value="Aetna">Aetna</option>
-            <option value="UnitedHealthcare">UnitedHealthcare</option>
-            <option value="Cigna">Cigna</option>
-            <option value="Medicare">Medicare</option>
-            <option value="Medicaid">Medicaid</option>
-            <option value="Self-Pay">Self-Pay / No Insurance</option>
-          </select>
+    <main className="page-wrapper">
+      <div className="page-container-sm">
+        <div className="page-header">
+          <h1 className="page-title">Health Plan Billing</h1>
+          <p className="page-subtitle">Enter information exactly as it appears on the insurance card.</p>
         </div>
 
-        {/* Member ID & Group Number */}
-        <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
-          <div style={{ flex: 1 }}>
-            <label style={labelStyle}>Member ID / Policy #:</label>
-            <input 
-              type="text" 
-              name="member_id"
-              value={billingData.member_id}
-              onChange={handleChange}
-              required 
-              style={inputStyle} 
-            />
+        {error && (
+          <div className="alert alert-error" style={{ marginBottom: 'var(--space-5)' }} role="alert">
+            <AlertCircle size={15} aria-hidden="true" />
+            <span>{error}</span>
           </div>
-          <div style={{ flex: 1 }}>
-            <label style={labelStyle}>Group Number:</label>
-            <input 
-              type="text" 
-              name="group_id"
-              value={billingData.group_id}
-              onChange={handleChange}
-              style={inputStyle} 
-            />
-          </div>
-        </div>
+        )}
 
-        {/* Plan Type & Copay */}
-        <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
-          <div style={{ flex: 1 }}>
-            <label style={labelStyle}>Plan Type:</label>
-            <select name="plan_type" value={billingData.plan_type} onChange={handleChange} style={inputStyle}>
-              <option value="HMO">HMO</option>
-              <option value="PPO">PPO</option>
-              <option value="EPO">EPO</option>
-              <option value="POS">POS</option>
-            </select>
-          </div>
-          <div style={{ flex: 1 }}>
-            <label style={labelStyle}>Standard Copay ($):</label>
-            <input 
-              type="number" 
-              name="copay"
-              value={billingData.copay}
-              onChange={handleChange}
-              placeholder="0.00"
-              style={inputStyle} 
-            />
-          </div>
-        </div>
-
-        {/* Effective Date */}
-        <div style={groupStyle}>
-          <label style={labelStyle}>Effective Date:</label>
-          <input 
-            type="date" 
-            name="effective_date"
-            value={billingData.effective_date}
-            onChange={handleChange}
-            style={inputStyle} 
-          />
-        </div>
-        {/* Insurance PHOTO BOX */}
-        <div style={{ 
-          marginTop: '20px', 
-          padding: '20px', 
-          border: '2px dashed #007bff', 
-          borderRadius: '8px', 
-          backgroundColor: '#f8fbff',
-          textAlign: 'center'
-        }}>
-          <label style={{ display: 'block', marginBottom: '4px' }}></label>
-          <label style={{ cursor: 'pointer', display: 'block' }}>
-            <div style={{ fontSize: '24px', marginBottom: '8px' }}>📸</div>
-            <div style={{ fontWeight: 'bold', color: '#007bff', marginBottom: '4px' }}>
-              {id_photo ? 'Photo Selected' : 'Upload Insurance Photo'}
+        <form onSubmit={handleSubmit} noValidate aria-label="Health plan billing form">
+          {/* Carrier */}
+          <div className="card" style={{ marginBottom: 'var(--space-5)' }}>
+            <div className="card-header">
+              <h2 className="card-title">Insurance Carrier</h2>
             </div>
-            <div style={{ fontSize: '12px', color: '#666' }}></div>
-            <input 
-              type="file" 
-              accept="image/*" 
-              onChange={handleFileChange} 
-              style={{ display: 'none' }} 
-            />
-          </label>
-
-          {previewUrl && (
-            <div style={{ marginTop: '15px', position: 'relative' }}>
-              <img 
-                src={previewUrl} 
-                alt="ID Preview" 
-                style={{ width: '100%', maxHeight: '180px', objectFit: 'contain', borderRadius: '4px', border: '1px solid #ddd', background: '#fff' }} 
-              />
-              <p style={{ fontSize: '11px', color: '#888', marginTop: '5px' }}>{id_photo.name}</p>
+            <div className="card-body">
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label htmlFor="carrier_name" className="form-label">
+                  Carrier Name <span className="required" aria-hidden="true">*</span>
+                </label>
+                <select
+                  id="carrier_name" className="form-select"
+                  value={billing.carrier_name} onChange={set('carrier_name')}
+                  required aria-required="true"
+                >
+                  <option value="">— Select insurance carrier —</option>
+                  {CARRIERS.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-          )}
-        </div>
+          </div>
 
-        {/*Save and back button */}
-        <label style={{ display: 'block', marginBottom: '4px' }}></label>
-        <button type="submit" style={saveButtonStyle}>
-          Save Billing Information
-        </button>
-      </form>
+          {/* Plan Details */}
+          <div className="card" style={{ marginBottom: 'var(--space-5)' }}>
+            <div className="card-header">
+              <h2 className="card-title">Plan Details</h2>
+            </div>
+            <div className="card-body">
+              <div className="form-grid-2">
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label htmlFor="member_id" className="form-label">
+                    Member ID / Policy # <span className="required" aria-hidden="true">*</span>
+                  </label>
+                  <input
+                    id="member_id" className="form-input"
+                    value={billing.member_id} onChange={set('member_id')}
+                    required aria-required="true"
+                    placeholder="e.g. XYZ123456789"
+                  />
+                </div>
 
-      <Link to="/" style={{ textDecoration: 'none' }}>
-        <button style={backButtonStyle}>
-            Go Back Home
-        </button>
-      </Link>
-    </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label htmlFor="group_id" className="form-label">Group Number</label>
+                  <input
+                    id="group_id" className="form-input"
+                    value={billing.group_id} onChange={set('group_id')}
+                    placeholder="e.g. GRP001"
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label htmlFor="plan_type" className="form-label">Plan Type</label>
+                  <select
+                    id="plan_type" className="form-select"
+                    value={billing.plan_type} onChange={set('plan_type')}
+                  >
+                    {PLAN_TYPES.map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label htmlFor="copay" className="form-label">Standard Copay ($)</label>
+                  <input
+                    type="number" id="copay" className="form-input"
+                    value={billing.copay} onChange={set('copay')}
+                    min="0" step="0.01"
+                    placeholder="0.00"
+                  />
+                </div>
+
+                <div className="form-group form-col-2" style={{ marginBottom: 0 }}>
+                  <label htmlFor="effective_date" className="form-label">Effective Date</label>
+                  <input
+                    type="date" id="effective_date" className="form-input"
+                    value={billing.effective_date} onChange={set('effective_date')}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Insurance Card Photo */}
+          <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
+            <div className="card-header">
+              <h2 className="card-title">Insurance Card Photo</h2>
+            </div>
+            <div className="card-body">
+              <label
+                className={`upload-zone ${id_photo ? 'active' : ''}`}
+                htmlFor="insurance_photo_input"
+                role="button"
+                aria-label="Upload insurance card photo"
+              >
+                {previewUrl ? (
+                  <div>
+                    <img
+                      src={previewUrl}
+                      alt="Insurance card preview"
+                      style={{ width: '100%', maxHeight: '160px', objectFit: 'contain', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', marginBottom: 'var(--space-2)' }}
+                    />
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-2)' }}>
+                      <CheckCircle size={15} style={{ color: 'var(--color-success)' }} aria-hidden="true" />
+                      <span className="upload-title" style={{ color: 'var(--color-success)' }}>
+                        {id_photo.name}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <Camera size={28} style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-2)' }} aria-hidden="true" />
+                    <div className="upload-title">Upload Insurance Card Photo</div>
+                    <div className="upload-subtitle">JPG, PNG or WEBP · Click to browse</div>
+                  </>
+                )}
+                <input
+                  type="file"
+                  id="insurance_photo_input"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  style={{ display: 'none' }}
+                  aria-label="Select insurance card photo file"
+                />
+              </label>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+            <button
+              type="submit"
+              className="btn btn-success btn-full btn-lg"
+              disabled={loading}
+              aria-busy={loading}
+            >
+              {loading ? (
+                <>
+                  <span className="loading-spinner" style={{ width: '16px', height: '16px', borderWidth: '2px' }} aria-hidden="true" />
+                  Saving…
+                </>
+              ) : (
+                <>
+                  <ShieldCheck size={17} aria-hidden="true" />
+                  Save Billing Information
+                </>
+              )}
+            </button>
+
+            <Link to="/" tabIndex={-1}>
+              <button type="button" className="btn btn-secondary btn-full">← Back to Dashboard</button>
+            </Link>
+          </div>
+        </form>
+      </div>
+    </main>
   )
 }
 
-// Consolidating your styles
-const inputStyle = {
-  width: '100%',
-  padding: '8px',
-  boxSizing: 'border-box',
-  borderRadius: '4px',
-  border: '1px solid #ccc'
-}
-
-const labelStyle = {
-  display: 'block',
-  marginBottom: '5px',
-  fontWeight: 'bold',
-  fontSize: '14px'
-}
-
-const groupStyle = {
-  marginBottom: '15px'
-}
-
-const saveButtonStyle = { 
-  width: '100%', 
-  padding: '12px', 
-  backgroundColor: '#28a745', 
-  color: 'white', 
-  border: 'none', 
-  borderRadius: '4px', 
-  cursor: 'pointer', 
-  fontSize: '16px', 
-  fontWeight: 'bold' 
-};
-
-const backButtonStyle = { 
-  width: '100%', 
-  marginTop: '12px', 
-  padding: '10px', 
-  backgroundColor: '#6c757d', 
-  color: 'white', 
-  border: 'none', 
-  borderRadius: '4px', 
-  cursor: 'pointer',
-  fontSize: '16px'
-};
-
-export default Plan_page;
+export default Plan_page
