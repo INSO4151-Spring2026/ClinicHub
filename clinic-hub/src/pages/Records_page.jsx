@@ -1,194 +1,237 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Save, Edit, ArrowLeft, User, Phone, Mail, MapPin, Calendar, Activity } from 'lucide-react';
+import { useState, useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { Save, Edit, ArrowLeft, User, Phone, Mail, MapPin, Calendar, Droplets, AlertCircle } from 'lucide-react'
 
 const Records_page = () => {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const [isEditing, setIsEditing] = useState(false);
+  const { id }       = useParams()
+  const navigate     = useNavigate()
+  const [isEditing, setIsEditing] = useState(false)
+  const [patient, setPatient]     = useState(null)
+  const [loading, setLoading]     = useState(true)
+  const [saving, setSaving]       = useState(false)
+  const [error, setError]         = useState('')
+  const [success, setSuccess]     = useState(false)
 
-  const [patient, setPatient] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  // Sync state if the ID in the URL changes
   useEffect(() => {
-    const fetchPatientData = async () => {
-      const token = localStorage.getItem('token');
-
+    const fetchPatient = async () => {
+      const token = localStorage.getItem('token')
       try {
         const response = await fetch(`http://localhost:5000/api/patients/${id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-
+          headers: { Authorization: `Bearer ${token}` },
+        })
         if (response.ok) {
-          const data = await response.json();
-          setPatient(data);
+          setPatient(await response.json())
         } else if (response.status === 404) {
-          setPatient(null);
-        } else {
-          console.error("Failed to fetch patient");
+          setPatient(null)
         }
       } catch (err) {
-        console.error("Connection error:", err);
+        console.error('Connection error:', err)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
-
-    fetchPatientData();
-  }, [id]);
+    }
+    fetchPatient()
+  }, [id])
 
   const handleSave = async () => {
-    const token = localStorage.getItem('token');
+    setError('')
+    setSaving(true)
+    const token = localStorage.getItem('token')
 
     try {
-        const res = await fetch(`http://localhost:5000/api/patients/${id}`, {
+      const res = await fetch(`http://localhost:5000/api/patients/${id}`, {
         method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(patient)
-        });
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(patient),
+      })
 
-        const text = await res.text(); // safer debug
+      const text = await res.text()
+      let data
+      try { data = JSON.parse(text) } catch { throw new Error('Non-JSON response from server') }
 
-        let data;
-        try {
-        data = JSON.parse(text);
-        } catch {
-        console.error("Non-JSON response:", text);
-        throw new Error("Backend did not return JSON");
-        }
-
-        if (res.ok) {
-        alert("✅ Patient updated");
-        setIsEditing(false);
-        } else {
-        alert(data.message || "❌ Failed to update");
-        }
-
+      if (res.ok) {
+        setIsEditing(false)
+        setSuccess(true)
+        setTimeout(() => setSuccess(false), 3000)
+      } else {
+        setError(data.message || 'Failed to update patient record.')
+      }
     } catch (err) {
-        console.error("Save error:", err);
-        alert("Server connection error");
+      setError('Server connection error. Please try again.')
+    } finally {
+      setSaving(false)
     }
-  };
-
-  // Loading state
-  if (loading) {
-    return <div style={{ padding: '20px' }}>Loading patient...</div>;
   }
 
-  // Not found state
+  const FIELDS = [
+    { key: 'first_name',  label: 'First Name',       icon: <User size={13} />, autoComplete: 'given-name' },
+    { key: 'last_name',   label: 'Last Name',         icon: <User size={13} />, autoComplete: 'family-name' },
+    { key: 'email',       label: 'Email Address',     icon: <Mail size={13} />, type: 'email', autoComplete: 'email' },
+    { key: 'phone',       label: 'Phone Number',      icon: <Phone size={13} />, type: 'tel', autoComplete: 'tel' },
+    { key: 'dob',         label: 'Date of Birth',     icon: <Calendar size={13} />, type: 'date' },
+    { key: 'blood_type',  label: 'Blood Type',        icon: <Droplets size={13} /> },
+  ]
+
+  /* ── Loading ── */
+  if (loading) {
+    return (
+      <main className="page-wrapper">
+        <div className="loading-state" role="status" aria-live="polite">
+          <span className="loading-spinner" aria-hidden="true" />
+          Loading patient record…
+        </div>
+      </main>
+    )
+  }
+
+  /* ── Not found ── */
   if (!patient) {
     return (
-      <div style={{ padding: '20px' }}>
-        <h2>Patient not found</h2>
-        <button onClick={() => navigate('/patients')}>
-          <ArrowLeft size={16} /> Back to list
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div style={container}>
-      <div style={navHeader}>
-        <button onClick={() => navigate('/patients')} style={backBtn}>
-          <ArrowLeft size={18} /> Back to Patient List
-        </button>
-      </div>
-
-      <div style={card}>
-        <div style={cardHeader}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <div style={avatarCircle}><User size={30} color="#007bff" /></div>
-            <div>
-              <h2 style={{ margin: 0, color: '#333' }}>
-                {isEditing ? "Editing Record" : "Patient Profile"}
-              </h2>
-              <p style={{ margin: '4px 0 0 0', color: '#666', fontWeight: 'bold' }}>ID: #{patient.patient_id}</p>
+      <main className="page-wrapper">
+        <div className="page-container-md">
+          <div className="card">
+            <div className="card-body">
+              <div className="empty-state">
+                <div className="empty-state-icon" aria-hidden="true">🔍</div>
+                <p className="empty-state-title">Patient not found</p>
+                <p className="empty-state-text">No patient with ID #{id} exists in the system.</p>
+                <button className="btn btn-secondary" style={{ marginTop: 'var(--space-5)' }} onClick={() => navigate('/patients')}>
+                  <ArrowLeft size={15} aria-hidden="true" /> Back to Patient List
+                </button>
+              </div>
             </div>
           </div>
-          <button 
-            style={isEditing ? saveBtn : editBtn} 
-            onClick={isEditing ? handleSave : () => setIsEditing(true)}
+        </div>
+      </main>
+    )
+  }
+
+  /* ── Record ── */
+  return (
+    <main className="page-wrapper">
+      <div className="page-container-md">
+        {/* Back link */}
+        <div style={{ marginBottom: 'var(--space-5)' }}>
+          <button
+            onClick={() => navigate('/patients')}
+            className="btn btn-ghost btn-sm"
+            aria-label="Back to patient list"
           >
-            {isEditing ? <><Save size={18} /> Save Changes</> : <><Edit size={18} /> Edit Record</>}
+            <ArrowLeft size={15} aria-hidden="true" /> Back to Patient List
           </button>
         </div>
 
-        <div style={divider}></div>
+        {/* Alerts */}
+        {error && (
+          <div className="alert alert-error" style={{ marginBottom: 'var(--space-4)' }} role="alert">
+            <AlertCircle size={15} aria-hidden="true" />
+            <span>{error}</span>
+          </div>
+        )}
+        {success && (
+          <div className="alert alert-success" style={{ marginBottom: 'var(--space-4)' }} role="status" aria-live="polite">
+            <span>Patient record updated successfully.</span>
+          </div>
+        )}
 
-        <div style={formGrid}>
-          {[
-            { label: "First Name", icon: <User size={14}/>, key: "first_name" },
-            { label: "Last Name", icon: <User size={14}/>, key: "last_name" },
-            { label: "Email Address", icon: <Mail size={14}/>, key: "email" },
-            { label: "Phone Number", icon: <Phone size={14}/>, key: "phone" },
-            { label: "Date of Birth", icon: <Calendar size={14}/>, key: "dob", type: "date" },
-            { label: "Blood Type", icon: <Activity size={14}/>, key: "blood_type" }
-          ].map((field) => (
-            <div key={field.key} style={inputGroup}>
-              <label style={labelStyle}>{field.icon} {field.label}</label>
-              <input 
-                type={field.type || "text"}
-                disabled={!isEditing} 
-                style={isEditing ? activeInput : staticInput}
-                // value ensures the current patient data is SHOWN in the box
-                value={patient[field.key] || ""} 
-                onChange={(e) => setPatient({...patient, [field.key]: e.target.value})}
+        <div className="card">
+          {/* Card header */}
+          <div className="card-header">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
+              <div className="avatar avatar-lg" aria-hidden="true">
+                <User size={26} />
+              </div>
+              <div>
+                <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 'var(--font-bold)', marginBottom: '2px' }}>
+                  {patient.first_name} {patient.last_name}
+                </h1>
+                <span className="badge badge-gray">Patient #{patient.patient_id}</span>
+              </div>
+            </div>
+
+            <button
+              className={isEditing ? 'btn btn-success' : 'btn btn-secondary'}
+              onClick={isEditing ? handleSave : () => setIsEditing(true)}
+              disabled={saving}
+              aria-label={isEditing ? 'Save changes' : 'Edit record'}
+            >
+              {saving ? (
+                <>
+                  <span className="loading-spinner" style={{ width: '14px', height: '14px', borderWidth: '2px' }} aria-hidden="true" />
+                  Saving…
+                </>
+              ) : isEditing ? (
+                <><Save size={15} aria-hidden="true" /> Save Changes</>
+              ) : (
+                <><Edit size={15} aria-hidden="true" /> Edit Record</>
+              )}
+            </button>
+          </div>
+
+          {/* Fields */}
+          <div className="card-body">
+            {isEditing && (
+              <div className="alert alert-info" style={{ marginBottom: 'var(--space-6)' }} role="status">
+                <span>Editing mode — modify the fields below and click Save Changes.</span>
+              </div>
+            )}
+
+            <p className="form-section-title">Personal Details</p>
+            <div className="form-grid-2" style={{ marginBottom: 'var(--space-8)' }}>
+              {FIELDS.map((field) => (
+                <div key={field.key} className="form-group" style={{ marginBottom: 0 }}>
+                  <label
+                    htmlFor={`field-${field.key}`}
+                    className="form-label"
+                  >
+                    {field.icon} {field.label}
+                  </label>
+                  <input
+                    id={`field-${field.key}`}
+                    type={field.type || 'text'}
+                    disabled={!isEditing}
+                    className={isEditing ? 'form-input' : 'form-input form-input-readonly'}
+                    value={patient[field.key] || ''}
+                    onChange={(e) => setPatient({ ...patient, [field.key]: e.target.value })}
+                    autoComplete={field.autoComplete}
+                    aria-readonly={!isEditing}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <p className="form-section-title">Address</p>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label htmlFor="field-address" className="form-label">
+                <MapPin size={13} /> Residential Address
+              </label>
+              <input
+                id="field-address"
+                disabled={!isEditing}
+                className={isEditing ? 'form-input' : 'form-input form-input-readonly'}
+                value={patient.address || ''}
+                onChange={(e) => setPatient({ ...patient, address: e.target.value })}
+                autoComplete="street-address"
+                aria-readonly={!isEditing}
               />
             </div>
-          ))}
-          <div style={{ ...inputGroup, gridColumn: 'span 2' }}>
-            <label style={labelStyle}><MapPin size={14} /> Residential Address</label>
-            <input 
-              disabled={!isEditing} 
-              style={isEditing ? activeInput : staticInput}
-              value={patient.address || ""}
-              onChange={(e) => setPatient({...patient, address: e.target.value})}
-            />
           </div>
+
+          {isEditing && (
+            <div className="card-footer">
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => { setIsEditing(false); setError('') }}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
         </div>
       </div>
-    </div>
-  );
-};
+    </main>
+  )
+}
 
-// --- Styles (Updated for Visibility) ---
-const container = { maxWidth: "850px", margin: "40px auto", padding: "0 20px" };
-const navHeader = { marginBottom: "20px" };
-const card = { backgroundColor: "#fff", padding: "35px", borderRadius: "12px", boxShadow: "0 4px 15px rgba(0,0,0,0.1)", border: "1px solid #eee" };
-const cardHeader = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" };
-const avatarCircle = { width: "55px", height: "55px", backgroundColor: "#eef6ff", borderRadius: "50%", display: "flex", justifyContent: "center", alignItems: "center" };
-const divider = { height: "1px", backgroundColor: "#eee", marginBottom: "25px" };
-const formGrid = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" };
-const inputGroup = { display: "flex", flexDirection: "column", gap: "8px" };
-const labelStyle = { fontSize: "13px", fontWeight: "bold", color: "#555", display: "flex", alignItems: "center", gap: "5px" };
-
-const staticInput = { 
-  padding: "12px", 
-  border: "1px solid #eee", 
-  backgroundColor: "#fcfcfc", 
-  borderRadius: "8px", 
-  color: "#333", // Dark grey text
-  fontSize: "15px" 
-};
-
-const activeInput = { 
-  padding: "12px", 
-  border: "1px solid #007bff", 
-  backgroundColor: "#fff", 
-  borderRadius: "8px", 
-  color: "#000", // Solid black text when editing
-  fontSize: "15px", 
-  outline: "none",
-  boxShadow: "0 0 0 2px rgba(0,123,255,0.1)"
-};
-
-const editBtn = { display: "flex", gap: "8px", alignItems: "center", padding: "10px 20px", backgroundColor: "#6c757d", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" };
-const saveBtn = { ...editBtn, backgroundColor: "#28a745" };
-const backBtn = { background: "none", border: "none", color: "#007bff", cursor: "pointer", fontWeight: "bold", display: "flex", alignItems: "center", gap: "5px" };
-
-export default Records_page;
+export default Records_page

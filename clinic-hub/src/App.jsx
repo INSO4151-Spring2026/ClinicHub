@@ -1,227 +1,332 @@
 import { useState, useEffect } from 'react'
-import { Routes, Route, Link, Navigate } from 'react-router-dom' 
-import './App.css'
+import { Routes, Route, Link, Navigate, useLocation } from 'react-router-dom'
 import Login_page from './pages/Login_page'
 import Create_patient from './pages/Create_patient'
 import Appointment_page from './pages/Appointment_page'
-import Vitals_page from './pages/Vitals_page'  
+import Vitals_page from './pages/Vitals_page'
 import Plan_page from './pages/Plan_page'
 import Reports_page from './pages/Reports_page'
-import Calendar_page from './pages/Calendar_page' // Added import
+import Calendar_page from './pages/Calendar_page'
 import Patient_list_page from './pages/Patient_list_page'
 import Records_page from './pages/Records_page'
+import {
+  Users, Calendar, ClipboardList, Activity, BarChart2,
+  Heart, LogIn, LogOut, Home as HomeIcon, Shield, Stethoscope, UserCheck,
+  UserPlus, FileText,
+} from 'lucide-react'
 
-// --- HOME COMPONENT ---
-const Home = ({ role, handleRoleChange }) => (
-  /* Main Container */
-  <div style={{ 
-    maxWidth: '900px', 
-    margin: '40px auto', 
-    padding: '30px', 
-    backgroundColor: '#ffffff', 
-    color: '#333333',           
-    border: '1px solid #ddd', 
-    borderRadius: '12px', 
-    fontFamily: 'Arial, sans-serif',
-    textAlign: 'left',
-    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-  }}>
-    
-    {/* Header Section*/}
-    <header style={{ textAlign: 'center', marginBottom: '30px', padding: '10px 0' }}>
-      <h1 style={{ color: '#222', margin: '0 0 10px 0', fontSize: '2.2rem' }}>Clinic Hub Management System</h1>
-      <p style={{ color: '#666', fontSize: '1.1rem' }}>Secure Clinical Administration Portal</p>
-    </header>
+// ── Navbar ──────────────────────────────────────────────────
+const RoleIcon = ({ role }) => {
+  if (role === 'Admin')        return <Shield size={12} />
+  if (role === 'Doctor')       return <Stethoscope size={12} />
+  if (role === 'Receptionist') return <UserCheck size={12} />
+  return null
+}
 
-    <div style={{ borderBottom: '2px solid #eee', marginBottom: '30px' }}></div>
-
-    {/* Project Description Section */}
-    <section style={{ marginBottom: '30px' }}>
-      <h3 style={{ color: '#444', marginBottom: '10px' }}>Project Description</h3>
-      <p style={{ lineHeight: '1.6', fontSize: '16px', color: '#444' }}>
-        We propose a solution that can consolidate core clinic operations into a single, 
-        cohesive platform to improve efficiency, reduce administrative overhead, and enhance patient care. 
-      </p>
-    </section>
-
-    {/* Dashboard Navigation (Role-Based) */}
-    <section style={{ 
-      backgroundColor: '#f8f9fa', 
-      padding: '25px', 
-      borderRadius: '8px', 
-      border: '1px solid #eee', 
-      marginBottom: '30px' 
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h3 style={{ margin: 0, color: '#222' }}> Dashboard Access</h3>
-        <div style={{ textAlign: 'right' }}>
-           <select 
-             value={role} 
-             onChange={handleRoleChange} 
-             style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', backgroundColor: '#fff', color: '#333' }}
-           >
-             <option value="">-- Switch Role --</option>
-             <option value="Admin">Admin</option>
-             <option value="Doctor">Doctor</option>
-             <option value="Receptionist">Receptionist</option>
-           </select>
-           <div style={{ fontSize: '13px', marginTop: '8px', color: '#555' }}>
-             Current Role: <strong style={{ color: '#007bff' }}>{role || 'Public'}</strong>
-           </div>
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-        {/* Login blue */}
-        <Link to="/login" style={{ textDecoration: 'none' }}><button style={blueBtn}>Login Page</button></Link>
-        
-        {/* Other navigation grey */}
-        <Link to="/plan" style={{ textDecoration: 'none' }}><button style={greyBtn}>Health Plans</button></Link>
-        
-        {/* New Calendar Link - Accessible to all roles for viewing schedule */}
-        <Link to="/calendar" style={{ textDecoration: 'none' }}><button style={greyBtn}>Schedule Calendar</button></Link>
-        
-        {role === 'Admin' && <Link to="/reports" style={{ textDecoration: 'none' }}><button style={greyBtn}>Financial Reports</button></Link>}
-        {(role === 'Admin' || role === 'Doctor') && <Link to="/vitals" style={{ textDecoration: 'none' }}><button style={greyBtn}>Vitals Entry</button></Link>}
-        {(role === 'Admin' || role === 'Receptionist') && <Link to="/create-patient" style={{ textDecoration: 'none' }}><button style={greyBtn}>Create Patient</button></Link>}
-        {(role === 'Admin' || role === 'Receptionist' || role === 'Doctor') && (<Link to="/patients" style={{ textDecoration: 'none' }}><button style={greyBtn}>Patient List</button></Link>)}
-        {role && <Link to="/appointment" style={{ textDecoration: 'none' }}><button style={greyBtn}>Appointments</button></Link>}
-      </div>
-    </section>
-
-    {/* Tech Stack & Team Grid */}
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
-      <section style={{ backgroundColor: '#ffffff', padding: '15px', borderRadius: '8px', border: '1px solid #efefef' }}>
-        <h3 style={{ color: '#444', marginTop: 0 }}>🛠 Tech Stack</h3>
-        <ul style={{ paddingLeft: '20px', fontSize: '14px', lineHeight: '1.8', color: '#555' }}>
-          <li><strong>Frontend:</strong> React (Vite) / React Router</li>
-          <li><strong>Backend:</strong> Node.js / Express Middleware, Flask</li>
-          <li><strong>Auth:</strong> JWT Bearer Tokens</li>
-          <li><strong>Storage:</strong> LocalStorage for Session Persistence</li>
-        </ul>
-      </section>
-
-      <section style={{ backgroundColor: '#ffffff', padding: '15px', borderRadius: '8px', border: '1px solid #efefef' }}>
-        <h3 style={{ color: '#444', marginTop: 0 }}>👥 Project Team</h3>
-        <ul style={{ paddingLeft: '20px', fontSize: '14px', lineHeight: '1.8', color: '#555' }}>
-          <li style={{ whiteSpace: 'pre-line' }}><strong>Development:</strong>
-            Alejandro A. Pérez Pabón,
-            Christian N. Rodríguez Figueroa,
-            Orlando G. Mercado Tellado,
-            Cristian Barreras Tatsenko
-          </li>
-          <li>
-            <strong>Docs: </strong> 
-            <a 
-              href="https://docs.google.com/document/d/1nhnJKCCqy1WglL0vUUmTMAIHTmno4_g9t_rBls7df_8/edit?usp=sharing" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              style={{ color: '#007bff', textDecoration: 'underline' }}
-            >
-              View Documentation
-            </a>
-          </li>
-        </ul>
-      </section>
-    </div>
-  </div>
-);
-
-// --- APP COMPONENT ---
-function App() {
-  // Use localStorage so the role isn't lost when moving between pages
-  const [role, setRole] = useState(localStorage.getItem('userRole') || '')
-
-  const handleRoleChange = (e) => {
-    const newRole = e.target.value;
-    setRole(newRole);
-    localStorage.setItem('userRole', newRole);
-  }
-
-  // Sync state if localStorage changes 
-  useEffect(() => {
-    const savedRole = localStorage.getItem('userRole');
-    if (savedRole && savedRole !== role) {
-      setRole(savedRole);
-    }
-  }, [role]);
-
-  const ProtectedRoute = ({ role, allowedRoles, children }) => {
-    if (!allowedRoles.includes(role)) {
-      // If user is not authorized, send them back home
-      return <Navigate to="/" replace />;
-    }
-    return children;
-  };
+const NavBar = ({ role, handleRoleChange, handleSignOut }) => {
+  const { pathname } = useLocation()
+  const cls = (path) => pathname === path ? 'nav-link active' : 'nav-link'
+  const isLoggedIn = Boolean(localStorage.getItem('token'))
 
   return (
-    <Routes>
-      <Route path="/" element={<Home role={role} handleRoleChange={handleRoleChange} />} />
-      <Route path="/login" element={<Login_page />} />
-      <Route path="/plan" element={<Plan_page />} />
-      <Route path="/calendar" element={<Calendar_page />} />
-      
-      <Route path="/vitals" element={
-        <ProtectedRoute role={role} allowedRoles={['Admin', 'Doctor']}>
-          <Vitals_page />
-        </ProtectedRoute>
-      } />
+    <nav className="navbar" role="navigation" aria-label="Main navigation">
+      <Link to="/" className="navbar-brand" aria-label="ClinicHub home">
+        <div className="navbar-brand-icon" aria-hidden="true">
+          <Heart size={16} color="#fff" />
+        </div>
+        ClinicHub
+      </Link>
 
-      <Route path="/create-patient" element={
-        <ProtectedRoute role={role} allowedRoles={['Admin', 'Receptionist']}>
-          <Create_patient />
-        </ProtectedRoute>
-      } />
+      <ul className="navbar-nav" role="list">
+        <li>
+          <Link to="/" className={cls('/')} aria-current={pathname === '/' ? 'page' : undefined}>
+            <HomeIcon size={14} /> Dashboard
+          </Link>
+        </li>
+        {(role === 'Admin' || role === 'Doctor' || role === 'Receptionist') && (
+          <li>
+            <Link to="/patients" className={cls('/patients')}>
+              <Users size={14} /> Patients
+            </Link>
+          </li>
+        )}
+        {(role === 'Admin' || role === 'Receptionist') && (
+          <li>
+            <Link to="/create-patient" className={cls('/create-patient')}>
+              <UserPlus size={14} /> New Patient
+            </Link>
+          </li>
+        )}
+        {(role === 'Admin' || role === 'Doctor' || role === 'Receptionist') && (
+          <li>
+            <Link to="/appointment" className={cls('/appointment')}>
+              <ClipboardList size={14} /> Appointments
+            </Link>
+          </li>
+        )}
+        {role && (
+          <li>
+            <Link to="/calendar" className={cls('/calendar')}>
+              <Calendar size={14} /> Schedule
+            </Link>
+          </li>
+        )}
+        {(role === 'Admin' || role === 'Doctor') && (
+          <li>
+            <Link to="/vitals" className={cls('/vitals')}>
+              <Activity size={14} /> Vitals
+            </Link>
+          </li>
+        )}
+        <li>
+          <Link to="/plan" className={cls('/plan')}>
+            <FileText size={14} /> Plans
+          </Link>
+        </li>
+        {role === 'Admin' && (
+          <li>
+            <Link to="/reports" className={cls('/reports')}>
+              <BarChart2 size={14} /> Reports
+            </Link>
+          </li>
+        )}
+      </ul>
 
-      <Route path="/patients" element={
-        <ProtectedRoute role={role} allowedRoles={['Admin', 'Doctor', 'Receptionist']}>
-          <Patient_list_page />
-        </ProtectedRoute>
-      } />
+      <div className="navbar-right">
+        <label htmlFor="role-switcher" className="sr-only">Switch role</label>
+        <select
+          id="role-switcher"
+          value={role}
+          onChange={handleRoleChange}
+          className="form-select"
+          style={{ width: 'auto', padding: '5px 30px 5px 10px', fontSize: '13px' }}
+          aria-label="Switch role"
+        >
+          <option value="">Guest</option>
+          <option value="Admin">Admin</option>
+          <option value="Doctor">Doctor</option>
+          <option value="Receptionist">Receptionist</option>
+        </select>
 
-      <Route path="/appointment" element={
-        <ProtectedRoute role={role} allowedRoles={['Admin', 'Doctor', 'Receptionist']}>
-          <Appointment_page />
-        </ProtectedRoute>
-      } />
+        {role && (
+          <span className="role-badge" aria-label={`Current role: ${role}`}>
+            <RoleIcon role={role} />
+            {role}
+          </span>
+        )}
 
-      <Route path="/reports" element={
-        <ProtectedRoute role={role} allowedRoles={['Admin']}>
-          <Reports_page />
-        </ProtectedRoute>
-      } />
-
-      <Route path="/records/:id" element={
-        <ProtectedRoute role={role} allowedRoles={['Admin', 'Doctor', 'Receptionist']}>
-          <Records_page />
-        </ProtectedRoute>
-      } />
-    </Routes>
+        {isLoggedIn ? (
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={handleSignOut}
+            aria-label="Sign out"
+          >
+            <LogOut size={13} aria-hidden="true" /> Sign Out
+          </button>
+        ) : (
+          <Link to="/login" tabIndex={-1}>
+            <button className="btn btn-primary btn-sm" aria-label="Sign in">
+              <LogIn size={13} aria-hidden="true" /> Sign In
+            </button>
+          </Link>
+        )}
+      </div>
+    </nav>
   )
 }
 
-// --- Button Styles ---
-const blueBtn = {
-  padding: '10px 20px',
-  backgroundColor: '#007bff',
-  color: 'white',
-  border: 'none',
-  borderRadius: '4px',
-  cursor: 'pointer',
-  fontWeight: 'bold',
-  fontSize: '14px',
-  transition: 'background 0.2s'
-};
+// ── Home / Dashboard ─────────────────────────────────────────
+const NAV_CARDS = [
+  {
+    to: '/patients', label: 'Patient List', icon: <Users size={20} />, iconClass: 'icon-blue',
+    desc: 'Browse and manage patients', roles: ['Admin', 'Doctor', 'Receptionist'],
+  },
+  {
+    to: '/create-patient', label: 'New Patient', icon: <UserPlus size={20} />, iconClass: 'icon-green',
+    desc: 'Register a new patient', roles: ['Admin', 'Receptionist'],
+  },
+  {
+    to: '/calendar', label: 'Schedule', icon: <Calendar size={20} />, iconClass: 'icon-purple',
+    desc: 'View and manage appointments', roles: null,
+  },
+  {
+    to: '/appointment', label: 'Appointments', icon: <ClipboardList size={20} />, iconClass: 'icon-orange',
+    desc: 'Book a new appointment', roles: ['Admin', 'Doctor', 'Receptionist'],
+  },
+  {
+    to: '/vitals', label: 'Vitals', icon: <Activity size={20} />, iconClass: 'icon-teal',
+    desc: 'Record patient measurements', roles: ['Admin', 'Doctor'],
+  },
+  {
+    to: '/plan', label: 'Health Plans', icon: <FileText size={20} />, iconClass: 'icon-blue',
+    desc: 'Manage billing & insurance', roles: null,
+  },
+  {
+    to: '/reports', label: 'Reports', icon: <BarChart2 size={20} />, iconClass: 'icon-orange',
+    desc: 'Financial revenue reports', roles: ['Admin'],
+  },
+]
 
-const greyBtn = {
-  padding: '10px 20px',
-  backgroundColor: '#6c757d',
-  color: 'white',
-  border: 'none',
-  borderRadius: '4px',
-  cursor: 'pointer',
-  fontWeight: 'bold',
-  fontSize: '14px'
-};
+const Home = ({ role }) => {
+  const visible = NAV_CARDS.filter(
+    (c) => c.roles === null || c.roles.includes(role)
+  )
 
-export default App;
+  return (
+    <main className="page-wrapper">
+      <div className="page-container">
+
+        {/* Hero */}
+        <header style={{ textAlign: 'center', paddingBottom: 'var(--space-8)', marginBottom: 'var(--space-8)', borderBottom: '1px solid var(--color-border)' }}>
+          <div style={{ display: 'inline-flex', width: '60px', height: '60px', backgroundColor: 'var(--color-primary)', borderRadius: 'var(--radius-lg)', alignItems: 'center', justifyContent: 'center', marginBottom: 'var(--space-4)' }} aria-hidden="true">
+            <Heart size={28} color="#fff" />
+          </div>
+          <h1 className="page-title" style={{ fontSize: 'var(--text-3xl)' }}>Clinic Hub Management System</h1>
+          <p className="page-subtitle">Secure Clinical Administration Portal</p>
+        </header>
+
+        {/* Auth notice */}
+        {!role && (
+          <div className="alert alert-info" style={{ marginBottom: 'var(--space-6)' }} role="status">
+            <LogIn size={15} aria-hidden="true" />
+            <span>
+              Select a role in the nav bar to unlock restricted features, or{' '}
+              <Link to="/login" style={{ fontWeight: 'var(--font-semibold)' }}>sign in</Link> with your account.
+            </span>
+          </div>
+        )}
+
+        {/* Quick access */}
+        <section aria-label="Quick access navigation" style={{ marginBottom: 'var(--space-8)' }}>
+          <p className="section-title">Quick Access</p>
+          <div className="nav-card-grid">
+            {visible.map((card) => (
+              <Link to={card.to} className="nav-card" key={card.to} aria-label={card.label}>
+                <div className={`nav-card-icon ${card.iconClass}`} aria-hidden="true">
+                  {card.icon}
+                </div>
+                <div className="nav-card-label">{card.label}</div>
+                <div className="nav-card-desc">{card.desc}</div>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {/* Info grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-5)' }}>
+          <div className="card">
+            <div className="card-header"><h2 className="card-title">Tech Stack</h2></div>
+            <div className="card-body">
+              <ul style={{ paddingLeft: 'var(--space-5)', fontSize: 'var(--text-sm)', lineHeight: '2.1', color: 'var(--color-text-secondary)', listStyle: 'disc' }}>
+                <li><strong style={{ color: 'var(--color-text)' }}>Frontend:</strong> React 19 + Vite</li>
+                <li><strong style={{ color: 'var(--color-text)' }}>Routing:</strong> React Router v7</li>
+                <li><strong style={{ color: 'var(--color-text)' }}>Backend:</strong> Express (Node) + Flask</li>
+                <li><strong style={{ color: 'var(--color-text)' }}>Auth:</strong> JWT Bearer Tokens</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-header">
+              <h2 className="card-title">Project Team</h2>
+              <a
+                href="https://docs.google.com/document/d/1nhnJKCCqy1WglL0vUUmTMAIHTmno4_g9t_rBls7df_8/edit?usp=sharing"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)' }}
+              >
+                View Docs →
+              </a>
+            </div>
+            <div className="card-body">
+              <ul style={{ paddingLeft: 'var(--space-5)', fontSize: 'var(--text-sm)', lineHeight: '2.1', color: 'var(--color-text-secondary)', listStyle: 'disc' }}>
+                <li>Alejandro A. Pérez Pabón</li>
+                <li>Christian N. Rodríguez Figueroa</li>
+                <li>Orlando G. Mercado Tellado</li>
+                <li>Cristian Barreras Tatsenko</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  )
+}
+
+// ── App ──────────────────────────────────────────────────────
+function App() {
+  const [role, setRole] = useState(localStorage.getItem('userRole') || '')
+
+  const handleRoleChange = (e) => {
+    const newRole = e.target.value
+    setRole(newRole)
+    localStorage.setItem('userRole', newRole)
+  }
+
+  const handleSignOut = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('role')
+    localStorage.removeItem('userRole')
+    setRole('')
+  }
+
+  useEffect(() => {
+    const saved = localStorage.getItem('userRole')
+    if (saved && saved !== role) setRole(saved)
+  }, [])
+
+  const ProtectedRoute = ({ allowedRoles, children }) => {
+    if (!allowedRoles.includes(role)) return <Navigate to="/" replace />
+    return children
+  }
+
+  return (
+    <>
+      <NavBar role={role} handleRoleChange={handleRoleChange} handleSignOut={handleSignOut} />
+      <Routes>
+        <Route path="/"       element={<Home role={role} />} />
+        <Route path="/login"  element={<Login_page />} />
+        <Route path="/plan"   element={<Plan_page />} />
+        <Route path="/calendar" element={<Calendar_page />} />
+
+        <Route path="/vitals" element={
+          <ProtectedRoute allowedRoles={['Admin', 'Doctor']}>
+            <Vitals_page />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/create-patient" element={
+          <ProtectedRoute allowedRoles={['Admin', 'Receptionist']}>
+            <Create_patient />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/patients" element={
+          <ProtectedRoute allowedRoles={['Admin', 'Doctor', 'Receptionist']}>
+            <Patient_list_page />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/appointment" element={
+          <ProtectedRoute allowedRoles={['Admin', 'Doctor', 'Receptionist']}>
+            <Appointment_page />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/reports" element={
+          <ProtectedRoute allowedRoles={['Admin']}>
+            <Reports_page />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/records/:id" element={
+          <ProtectedRoute allowedRoles={['Admin', 'Doctor', 'Receptionist']}>
+            <Records_page />
+          </ProtectedRoute>
+        } />
+      </Routes>
+    </>
+  )
+}
+
+export default App

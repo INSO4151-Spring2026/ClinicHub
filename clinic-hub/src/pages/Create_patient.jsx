@@ -1,355 +1,293 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { UserPlus, Camera, CheckCircle, AlertCircle } from 'lucide-react'
 
 function Create_patient() {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
-  const [first_name, set_first_name] = useState("");
-  const [last_name, set_last_name] = useState("");
-  const [last_name_2, set_last_name_2] = useState("");
-  const [dob, set_Dob] = useState("");
-  const [sex, set_sex] = useState("");
-  const [email, set_email] = useState("");
-  const [phone, set_phone] = useState("");
-  const [address, set_address] = useState("");
-  const [emergency_name, set_emergency_name] = useState("");
-  const [emergency_phone, set_emergency_phone] = useState("");
+  const [fields, setFields] = useState({
+    first_name: '',
+    last_name: '',
+    last_name_2: '',
+    dob: '',
+    sex: '',
+    email: '',
+    phone: '',
+    address: '',
+    emergency_name: '',
+    emergency_phone: '',
+  })
+  const [id_photo, setIdPhoto]   = useState(null)
+  const [previewUrl, setPreview] = useState(null)
+  const [loading, setLoading]    = useState(false)
+  const [error, setError]        = useState('')
 
-  // State for ID Photo
-  const [id_photo, setIdPhoto] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null);
+  const set = (key) => (e) => setFields((f) => ({ ...f, [key]: e.target.value }))
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files[0]
     if (file) {
-      setIdPhoto(file);
-      setPreviewUrl(URL.createObjectURL(file));
+      setIdPhoto(file)
+      setPreview(URL.createObjectURL(file))
     }
-  };
+  }
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault()
+    setError('')
+    setLoading(true)
 
-    // Using FormData to handle the text and the ID photo file
-    const formData = new FormData();
-    formData.append("first_name", first_name);
-    formData.append("last_name", last_name);
-    formData.append("last_name_2", last_name_2);
-    formData.append("dob", dob);
-    formData.append("sex", sex);
-    formData.append("email", email);
-    formData.append("phone", phone);
-    formData.append("address", address);
-    formData.append("emergency_contact_name", emergency_name);
-    formData.append("emergency_contact_phone", emergency_phone);
+    const formData = new FormData()
+    Object.entries(fields).forEach(([key, val]) => {
+      formData.append(key === 'emergency_name' ? 'emergency_contact_name' :
+                      key === 'emergency_phone' ? 'emergency_contact_phone' : key, val)
+    })
+    if (id_photo) formData.append('id_photo', id_photo)
 
-    if (id_photo) {
-      formData.append("id_photo", id_photo);
-    }
-
-    // Get the token from localStorage
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem('token')
 
     try {
-      const response = await fetch("http://localhost:5000/api/patients", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await fetch('http://localhost:5000/api/patients', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
-      });
+      })
 
       if (response.ok) {
-        alert("✅ Patient created successfully!");
-        navigate("/patients"); // Use navigate here to move only after successful POST
+        navigate('/patients')
       } else if (response.status === 403) {
-        alert(
-          "🚫 Access Denied: You don't have permission to create patients.",
-        );
+        setError("Access denied: You don't have permission to create patients.")
       } else {
-        alert("⚠️ Error: Could not save patient.");
+        setError('Could not save patient. Please check your input and try again.')
       }
-    } catch (err) {
-      console.error("Connection error:", err);
-      alert("❌ Connection Failed: Is the server running?");
+    } catch {
+      setError('Connection failed. Is the server running?')
+    } finally {
+      setLoading(false)
     }
-  };
+  }
 
   return (
-    <div
-      style={{
-        maxWidth: "600px",
-        margin: "40px auto",
-        padding: "30px",
-        border: "1px solid #ddd",
-        borderRadius: "8px",
-        fontFamily: "sans-serif",
-      }}
-    >
-      <h1>Create Patient</h1>
-      <form onSubmit={handleSubmit}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "12px",
-          }}
-        >
-          {/* First Name div */}
-          <div>
-            <label
-              htmlFor="first_name"
-              style={{ display: "block", marginBottom: "4px" }}
-            >
-              First Name
-            </label>
-            <input
-              id="first_name"
-              value={first_name}
-              onChange={(e) => set_first_name(e.target.value)}
-              required
-              style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
-            />
-          </div>
-          {/* Last Name div */}
-          <div>
-            <label
-              htmlFor="last_name"
-              style={{ display: "block", marginBottom: "4px" }}
-            >
-              Last Name
-            </label>
-            <input
-              id="last_name"
-              value={last_name}
-              onChange={(e) => set_last_name(e.target.value)}
-              required
-              style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
-            />
-          </div>
+    <main className="page-wrapper">
+      <div className="page-container-sm">
+        <div className="page-header">
+          <h1 className="page-title">Register New Patient</h1>
+          <p className="page-subtitle">Fill in the patient's details to create their record.</p>
         </div>
-        {/* Second Last Name div */}
-        <div style={{ marginTop: "12px" }}>
-          <label
-            htmlFor="last_name_2"
-            style={{ display: "block", marginBottom: "4px" }}
-          >
-            Second Last Name
-          </label>
-          <input
-            id="last_name_2"
-            value={last_name_2}
-            onChange={(e) => set_last_name_2(e.target.value)}
-            style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
-          />
-        </div>
-        {/* Date of Birth div */}
-        <div style={{ marginTop: "12px" }}>
-          <label
-            htmlFor="dob"
-            style={{ display: "block", marginBottom: "4px" }}
-          >
-            Date of Birth
-          </label>
-          <input
-            id="dob"
-            type="date"
-            value={dob}
-            onChange={(e) => set_Dob(e.target.value)}
-            required
-            style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
-          />
-        </div>
-        {/* Sex dropdown div */}
-        <div style={{ marginTop: "12px" }}>
-          <label
-            htmlFor="sex"
-            style={{ display: "block", marginBottom: "4px" }}
-          >
-            Sex
-          </label>
-          <select
-            id="sex"
-            value={sex}
-            onChange={(e) => set_sex(e.target.value)}
-            required
-            style={{ width: "100%", padding: "8px" }}
-          >
-            <option value="">Select</option>
-            <option value="female">Female</option>
-            <option value="male">Male</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
-        {/* Email div */}
-        <div style={{ marginTop: "12px" }}>
-          <label
-            htmlFor="email"
-            style={{ display: "block", marginBottom: "4px" }}
-          >
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => set_email(e.target.value)}
-            style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
-          />
-        </div>
-        {/* Phone div */}
-        <div style={{ marginTop: "12px" }}>
-          <label
-            htmlFor="phone"
-            style={{ display: "block", marginBottom: "4px" }}
-          >
-            Phone
-          </label>
-          <input
-            id="phone"
-            value={phone}
-            onChange={(e) => set_phone(e.target.value)}
-            style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
-          />
-        </div>
-        {/* Address div */}
-        <div style={{ marginTop: "12px" }}>
-          <label
-            htmlFor="address"
-            style={{ display: "block", marginBottom: "4px" }}
-          >
-            Address
-          </label>
-          <input
-            id="address"
-            value={address}
-            onChange={(e) => set_address(e.target.value)}
-            style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
-          />
-        </div>
-        {/* Emergency Contact Name div */}
-        <div style={{ marginTop: "12px" }}>
-          <label
-            htmlFor="emergency_name"
-            style={{ display: "block", marginBottom: "4px" }}
-          >
-            Emergency Contact Name
-          </label>
-          <input
-            id="emergency_name"
-            value={emergency_name}
-            onChange={(e) => set_emergency_name(e.target.value)}
-            style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
-          />
-        </div>
-        {/* Emergency Contact Phone div */}
-        <div style={{ marginTop: "12px" }}>
-          <label
-            htmlFor="emergency_phone"
-            style={{ display: "block", marginBottom: "4px" }}
-          >
-            Emergency Contact Phone
-          </label>
-          <input
-            id="emergency_phone"
-            value={emergency_phone}
-            onChange={(e) => set_emergency_phone(e.target.value)}
-            style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
-          />
-        </div>
-        {/* --- IDENTIFICATION PHOTO BOX --- */}
-        <div
-          style={{
-            marginTop: "20px",
-            padding: "20px",
-            border: "2px dashed #007bff",
-            borderRadius: "8px",
-            backgroundColor: "#f8fbff",
-            textAlign: "center",
-          }}
-        >
-          <label style={{ display: "block", marginBottom: "4px" }}>
-            Date of Birth
-          </label>
-          <label style={{ cursor: "pointer", display: "block" }}>
-            <div style={{ fontSize: "24px", marginBottom: "8px" }}>📸</div>
-            <div
-              style={{
-                fontWeight: "bold",
-                color: "#007bff",
-                marginBottom: "4px",
-              }}
-            >
-              {id_photo ? "Photo Selected" : "Upload Identification Photo"}
-            </div>
-            <div style={{ fontSize: "12px", color: "#666" }}></div>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              style={{ display: "none" }}
-            />
-          </label>
 
-          {previewUrl && (
-            <div style={{ marginTop: "15px", position: "relative" }}>
-              <img
-                src={previewUrl}
-                alt="ID Preview"
-                style={{
-                  width: "100%",
-                  maxHeight: "180px",
-                  objectFit: "contain",
-                  borderRadius: "4px",
-                  border: "1px solid #ddd",
-                  background: "#fff",
-                }}
-              />
-              <p style={{ fontSize: "11px", color: "#888", marginTop: "5px" }}>
-                {id_photo.name}
-              </p>
-            </div>
-          )}
-        </div>
-        {/* Submit Button */}
-        <button type="submit" style={submitButtonStyle}>
-          Create Patient
-        </button>
-      </form>
+        {error && (
+          <div className="alert alert-error" style={{ marginBottom: 'var(--space-5)' }} role="alert">
+            <AlertCircle size={15} aria-hidden="true" />
+            <span>{error}</span>
+          </div>
+        )}
 
-      {/*  Go Back Home */}
-      <Link to="/" style={{ textDecoration: "none" }}>
-        <button style={backButtonStyle}>Go Back Home</button>
-      </Link>
-    </div>
-  );
+        <form onSubmit={handleSubmit} noValidate aria-label="Create patient form">
+          {/* Personal Information */}
+          <div className="card" style={{ marginBottom: 'var(--space-5)' }}>
+            <div className="card-header">
+              <h2 className="card-title">Personal Information</h2>
+            </div>
+            <div className="card-body">
+              <div className="form-grid-2">
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label htmlFor="first_name" className="form-label">
+                    First Name <span className="required" aria-hidden="true">*</span>
+                  </label>
+                  <input
+                    id="first_name" className="form-input"
+                    value={fields.first_name} onChange={set('first_name')}
+                    required aria-required="true" autoComplete="given-name"
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label htmlFor="last_name" className="form-label">
+                    Last Name <span className="required" aria-hidden="true">*</span>
+                  </label>
+                  <input
+                    id="last_name" className="form-input"
+                    value={fields.last_name} onChange={set('last_name')}
+                    required aria-required="true" autoComplete="family-name"
+                  />
+                </div>
+
+                <div className="form-group form-col-2" style={{ marginBottom: 0 }}>
+                  <label htmlFor="last_name_2" className="form-label">Second Last Name</label>
+                  <input
+                    id="last_name_2" className="form-input"
+                    value={fields.last_name_2} onChange={set('last_name_2')}
+                    autoComplete="additional-name"
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label htmlFor="dob" className="form-label">
+                    Date of Birth <span className="required" aria-hidden="true">*</span>
+                  </label>
+                  <input
+                    type="date" id="dob" className="form-input"
+                    value={fields.dob} onChange={set('dob')}
+                    required aria-required="true"
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label htmlFor="sex" className="form-label">
+                    Sex <span className="required" aria-hidden="true">*</span>
+                  </label>
+                  <select
+                    id="sex" className="form-select"
+                    value={fields.sex} onChange={set('sex')}
+                    required aria-required="true"
+                  >
+                    <option value="">Select…</option>
+                    <option value="female">Female</option>
+                    <option value="male">Male</option>
+                    <option value="other">Other / Prefer not to say</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Contact Information */}
+          <div className="card" style={{ marginBottom: 'var(--space-5)' }}>
+            <div className="card-header">
+              <h2 className="card-title">Contact Information</h2>
+            </div>
+            <div className="card-body">
+              <div className="form-grid-2">
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label htmlFor="email" className="form-label">Email Address</label>
+                  <input
+                    type="email" id="email" className="form-input"
+                    value={fields.email} onChange={set('email')}
+                    autoComplete="email"
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label htmlFor="phone" className="form-label">Phone Number</label>
+                  <input
+                    type="tel" id="phone" className="form-input"
+                    value={fields.phone} onChange={set('phone')}
+                    autoComplete="tel"
+                  />
+                </div>
+
+                <div className="form-group form-col-2" style={{ marginBottom: 0 }}>
+                  <label htmlFor="address" className="form-label">Residential Address</label>
+                  <input
+                    id="address" className="form-input"
+                    value={fields.address} onChange={set('address')}
+                    autoComplete="street-address"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Emergency Contact */}
+          <div className="card" style={{ marginBottom: 'var(--space-5)' }}>
+            <div className="card-header">
+              <h2 className="card-title">Emergency Contact</h2>
+            </div>
+            <div className="card-body">
+              <div className="form-grid-2">
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label htmlFor="emergency_name" className="form-label">Contact Name</label>
+                  <input
+                    id="emergency_name" className="form-input"
+                    value={fields.emergency_name} onChange={set('emergency_name')}
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label htmlFor="emergency_phone" className="form-label">Contact Phone</label>
+                  <input
+                    type="tel" id="emergency_phone" className="form-input"
+                    value={fields.emergency_phone} onChange={set('emergency_phone')}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ID Photo */}
+          <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
+            <div className="card-header">
+              <h2 className="card-title">Identification Photo</h2>
+            </div>
+            <div className="card-body">
+              <label
+                className={`upload-zone ${id_photo ? 'active' : ''}`}
+                htmlFor="id_photo_input"
+                role="button"
+                aria-label="Upload identification photo"
+              >
+                {previewUrl ? (
+                  <div>
+                    <img
+                      src={previewUrl}
+                      alt="ID preview"
+                      style={{ width: '100%', maxHeight: '160px', objectFit: 'contain', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', marginBottom: 'var(--space-2)' }}
+                    />
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-2)' }}>
+                      <CheckCircle size={15} style={{ color: 'var(--color-success)' }} aria-hidden="true" />
+                      <span className="upload-title" style={{ color: 'var(--color-success)' }}>
+                        {id_photo.name}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <Camera size={28} style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-2)' }} aria-hidden="true" />
+                    <div className="upload-title">Upload Identification Photo</div>
+                    <div className="upload-subtitle">JPG, PNG or WEBP · Click to browse</div>
+                  </>
+                )}
+                <input
+                  type="file"
+                  id="id_photo_input"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  style={{ display: 'none' }}
+                  aria-label="Select identification photo file"
+                />
+              </label>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+            <button
+              type="submit"
+              className="btn btn-success btn-full btn-lg"
+              disabled={loading}
+              aria-busy={loading}
+            >
+              {loading ? (
+                <>
+                  <span className="loading-spinner" style={{ width: '16px', height: '16px', borderWidth: '2px' }} aria-hidden="true" />
+                  Creating patient…
+                </>
+              ) : (
+                <>
+                  <UserPlus size={17} aria-hidden="true" />
+                  Create Patient
+                </>
+              )}
+            </button>
+
+            <Link to="/" tabIndex={-1}>
+              <button type="button" className="btn btn-secondary btn-full">← Back to Dashboard</button>
+            </Link>
+          </div>
+        </form>
+      </div>
+    </main>
+  )
 }
 
-const submitButtonStyle = {
-  marginTop: "24px",
-  width: "100%",
-  padding: "12px",
-  background: "#28a745",
-  color: "white",
-  border: "none",
-  borderRadius: "4px",
-  cursor: "pointer",
-  fontWeight: "bold",
-  fontSize: "16px",
-};
-
-const backButtonStyle = {
-  display: "block",
-  width: "100%",
-  marginTop: "10px",
-  padding: "10px",
-  background: "#6c757d",
-  color: "white",
-  border: "none",
-  borderRadius: "4px",
-  cursor: "pointer",
-  textAlign: "center",
-  fontSize: "16px",
-};
-
-export default Create_patient;
+export default Create_patient
