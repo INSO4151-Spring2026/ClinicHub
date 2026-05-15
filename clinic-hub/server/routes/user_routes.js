@@ -149,7 +149,8 @@ router.get(
   authorize([ROLES.RECEPTIONIST, ROLES.ADMIN, ROLES.DOCTOR]),
   async (req, res) => {
     try {
-      const response = await fetch(`${FLASK_BASE}/api/patients`, {
+      const params = new URLSearchParams(req.query)
+      const response = await fetch(`${FLASK_BASE}/api/patients?${params}`, {
         method: "GET",
         headers: { Authorization: req.headers.authorization },
       });
