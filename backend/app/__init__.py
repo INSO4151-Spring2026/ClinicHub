@@ -40,6 +40,7 @@ def create_app(config_name="development"):
     from app.routes.reports import reports
     from app.routes.appointments import appointments
     from app.routes.invoice_routes import invoices
+    from app.routes.cpt_codes import cpt_codes
     from app.routes.compat import compat
 
     app.register_blueprint(main)
@@ -48,6 +49,7 @@ def create_app(config_name="development"):
     app.register_blueprint(reports)
     app.register_blueprint(appointments)
     app.register_blueprint(invoices)
+    app.register_blueprint(cpt_codes)
     app.register_blueprint(compat)
 
     # -------------------------------------------------------------------------

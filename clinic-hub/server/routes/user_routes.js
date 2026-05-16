@@ -46,14 +46,56 @@ router.get(
   authorize([ROLES.RECEPTIONIST, ROLES.DOCTOR, ROLES.ADMIN]),
   async (req, res) => {
     try {
-      const response = await fetch(`${FLASK_BASE}/api/appointments`, {
+      const params = new URLSearchParams(req.query);
+      const url = params.toString()
+        ? `${FLASK_BASE}/api/appointments?${params}`
+        : `${FLASK_BASE}/api/appointments`;
+
+      const response = await fetch(url, {
         method: "GET",
         headers: { Authorization: req.headers.authorization },
       });
-      const data = await response.json();
-      res.status(response.status).json(data);
+
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { message: text };
+      }
+      return res.status(response.status).json(data);
     } catch (err) {
-      res.status(502).json({ message: "Flask unreachable" });
+      return res.status(502).json({ message: "Flask unreachable" });
+    }
+  },
+);
+
+// --- 3.1 CPT CODES ---
+router.get(
+  "/cpt_codes",
+  authorize([ROLES.RECEPTIONIST, ROLES.DOCTOR, ROLES.ADMIN, ROLES.NURSE]),
+  async (req, res) => {
+    try {
+      const params = new URLSearchParams(req.query);
+      const url = params.toString()
+        ? `${FLASK_BASE}/api/cpt_codes?${params}`
+        : `${FLASK_BASE}/api/cpt_codes`;
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: { Authorization: req.headers.authorization },
+      });
+
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { message: text };
+      }
+      return res.status(response.status).json(data);
+    } catch (err) {
+      return res.status(502).json({ message: "Flask service unreachable" });
     }
   },
 );
@@ -75,6 +117,37 @@ router.post(
       res.status(response.status).json(data);
     } catch (err) {
       res.status(502).json({ message: "Flask service unreachable" });
+    }
+  },
+);
+
+router.put(
+  "/appointments/:id",
+  authorize([ROLES.RECEPTIONIST, ROLES.DOCTOR, ROLES.ADMIN]),
+  async (req, res) => {
+    try {
+      const response = await fetch(
+        `${FLASK_BASE}/api/appointments/${req.params.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: req.headers.authorization,
+          },
+          body: JSON.stringify(req.body),
+        },
+      );
+
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { message: text };
+      }
+      return res.status(response.status).json(data);
+    } catch (err) {
+      return res.status(502).json({ message: "Flask service unreachable" });
     }
   },
 );
@@ -149,7 +222,7 @@ router.get(
   authorize([ROLES.RECEPTIONIST, ROLES.ADMIN, ROLES.DOCTOR]),
   async (req, res) => {
     try {
-      const params = new URLSearchParams(req.query)
+      const params = new URLSearchParams(req.query);
       const response = await fetch(`${FLASK_BASE}/api/patients?${params}`, {
         method: "GET",
         headers: { Authorization: req.headers.authorization },

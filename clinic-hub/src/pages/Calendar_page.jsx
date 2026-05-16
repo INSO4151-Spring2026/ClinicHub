@@ -50,8 +50,12 @@ const Calendar_page = () => {
             ? raw.appointments
             : [];
 
+        const visible = rawData.filter(
+          (appt) => appt?.status !== "cancelled" && appt?.status !== "no_show",
+        );
+
         setAppointments(
-          rawData.map((appt) => {
+          visible.map((appt) => {
             const d = new Date(appt.scheduled_start);
             return {
               id: appt.appointment_id,

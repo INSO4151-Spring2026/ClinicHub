@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   CalendarCheck,
@@ -7,21 +7,16 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
-const SERVICE_OPTIONS = [
-  "Consultation",
-  "General Checkup",
-  "Follow-up",
-  "Vaccination",
-  "Lab Results Review",
-];
-
 const Appointment_page = () => {
   const navigate = useNavigate();
+
+  const [cptCodes, setCptCodes] = useState([]);
+  const [cptLoading, setCptLoading] = useState(true);
 
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    service: "Consultation",
+    cptCodeId: "",
     date: "",
     time: "",
     notes: "",
@@ -29,6 +24,74 @@ const Appointment_page = () => {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const selectedCpt = useMemo(() => {
+    const match = cptCodes.find(
+      (c) => String(c.cpt_code_id) === String(formData.cptCodeId),
+    );
+    return match || null;
+  }, [cptCodes, formData.cptCodeId]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    const loadCptCodes = async () => {
+      setCptLoading(true);
+      try {
+        const res = await fetch("http://localhost:5000/api/cpt_codes", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.status === 401) {
+          navigate("/login");
+          return;
+        }
+
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { message: text };
+        }
+
+        if (!res.ok) {
+          setCptCodes([]);
+          setError(
+            data?.error ||
+              data?.message ||
+              `Failed to load CPT codes (HTTP ${res.status}).`,
+          );
+          return;
+        }
+
+        const items = Array.isArray(data) ? data : [];
+        setCptCodes(items);
+
+        if (items.length > 0) {
+          setFormData((f) => ({
+            ...f,
+            cptCodeId: f.cptCodeId || String(items[0].cpt_code_id),
+          }));
+        }
+      } catch {
+        setError("Connection failed. Is the server running?");
+      } finally {
+        setCptLoading(false);
+      }
+    };
+
+    loadCptCodes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -41,6 +104,18 @@ const Appointment_page = () => {
     setLoading(true);
 
     const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login");
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.cptCodeId) {
+      setError("Please select a service (CPT code) before booking.");
+      setLoading(false);
+      return;
+    }
+
     const start = new Date(`${formData.date}T${formData.time}:00`);
     const end = new Date(start.getTime() + 30 * 60 * 1000);
 
@@ -49,7 +124,10 @@ const Appointment_page = () => {
       provider_user_id: 1,
       scheduled_start: start.toISOString(),
       scheduled_end: end.toISOString(),
-      reason: formData.service,
+      cpt_code_id: Number(formData.cptCodeId),
+      reason: selectedCpt
+        ? `${selectedCpt.code} - ${selectedCpt.description}`
+        : undefined,
       notes: formData.notes,
     };
 
@@ -62,6 +140,11 @@ const Appointment_page = () => {
         },
         body: JSON.stringify(payload),
       });
+
+      if (response.status === 401) {
+        navigate("/login");
+        return;
+      }
 
       const result = await response.json();
 
@@ -131,7 +214,12 @@ const Appointment_page = () => {
                   fontSize: "var(--text-sm)",
                 }}
               >
-                <strong>{formData.service}</strong> scheduled for{" "}
+                <strong>
+                  {selectedCpt
+                    ? `${selectedCpt.code} - ${selectedCpt.description}`
+                    : "Appointment"}
+                </strong>{" "}
+                scheduled for{" "}
                 <strong>
                   {new Date(
                     `${formData.date}T${formData.time}`,
@@ -166,7 +254,9 @@ const Appointment_page = () => {
                     setFormData({
                       name: "",
                       email: "",
-                      service: "Consultation",
+                      cptCodeId: cptCodes.length
+                        ? String(cptCodes[0].cpt_code_id)
+                        : "",
                       date: "",
                       time: "",
                       notes: "",
@@ -263,18 +353,25 @@ const Appointment_page = () => {
                 </label>
                 <select
                   id="appt-service"
-                  name="service"
+                  name="cptCodeId"
                   className="form-select"
-                  value={formData.service}
+                  value={formData.cptCodeId}
                   onChange={handleChange}
                   required
                   aria-required="true"
+                  disabled={cptLoading || cptCodes.length === 0}
                 >
-                  {SERVICE_OPTIONS.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
+                  {cptLoading ? (
+                    <option value="">Loading CPT codes…</option>
+                  ) : cptCodes.length === 0 ? (
+                    <option value="">No CPT codes available</option>
+                  ) : (
+                    cptCodes.map((c) => (
+                      <option key={c.cpt_code_id} value={c.cpt_code_id}>
+                        {c.code} · {c.description}
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
 

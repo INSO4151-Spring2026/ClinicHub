@@ -36,7 +36,15 @@ function Billing_page() {
     try {
       data = JSON.parse(text);
     } catch {
-      data = { message: text };
+      // Express 404 pages come back as HTML; avoid dumping that into the UI.
+      const looksLikeHtml =
+        typeof text === "string" &&
+        text.trimStart().startsWith("<!DOCTYPE html>");
+      data = {
+        message: looksLikeHtml
+          ? `Request failed (HTTP ${res.status}). Is the Node gateway up-to-date/restarted?`
+          : text,
+      };
     }
     return { ok: res.ok, status: res.status, data };
   };
@@ -53,7 +61,9 @@ function Billing_page() {
 
     try {
       const [apptRes, invRes] = await Promise.all([
-        fetchJson("http://localhost:5000/api/appointments", { method: "GET" }),
+        fetchJson("http://localhost:5000/api/appointments?per_page=100", {
+          method: "GET",
+        }),
         fetchJson("http://localhost:5000/api/invoices", { method: "GET" }),
       ]);
 
@@ -102,10 +112,14 @@ function Billing_page() {
   const eligibleAppointments = useMemo(() => {
     const invoiced = new Set(invoices.map((i) => i.appointment_id));
     return appointments
-      .filter((a) => a?.status === "completed")
       .filter((a) => Boolean(a?.cpt_id))
+      .filter((a) => a?.status !== "cancelled" && a?.status !== "no_show")
       .filter((a) => !invoiced.has(a?.appointment_id));
   }, [appointments, invoices]);
+
+  const appointmentById = useMemo(() => {
+    return new Map(appointments.map((a) => [a.appointment_id, a]));
+  }, [appointments]);
 
   const badgeForStatus = (status) => {
     if (status === "paid") return "badge badge-green";
@@ -122,9 +136,34 @@ function Billing_page() {
     setCreating(true);
 
     try {
+      const apptId = Number(selectedAppointmentId);
+      const appt = appointmentById.get(apptId);
+
+      // Backend requires appointment.status === 'completed' to invoice.
+      if (appt && appt.status !== "completed") {
+        const updateRes = await fetchJson(
+          `http://localhost:5000/api/appointments/${apptId}`,
+          {
+            method: "PUT",
+            body: JSON.stringify({ status: "completed" }),
+          },
+        );
+
+        if (!updateRes) return;
+
+        if (!updateRes.ok) {
+          setError(
+            updateRes.data?.error ||
+              updateRes.data?.message ||
+              "Could not mark appointment as completed.",
+          );
+          return;
+        }
+      }
+
       const res = await fetchJson("http://localhost:5000/api/invoices", {
         method: "POST",
-        body: JSON.stringify({ appointment_id: Number(selectedAppointmentId) }),
+        body: JSON.stringify({ appointment_id: apptId }),
       });
 
       if (!res) return;
@@ -232,7 +271,7 @@ function Billing_page() {
                     {eligibleAppointments.map((a) => (
                       <option key={a.appointment_id} value={a.appointment_id}>
                         #{a.appointment_id} · Patient {a.patient_id} · CPT{" "}
-                        {a.cpt_id}
+                        {a.cpt_code || a.cpt_id} · {a.status}
                       </option>
                     ))}
                   </select>
@@ -243,7 +282,8 @@ function Billing_page() {
                       fontSize: "var(--text-xs)",
                     }}
                   >
-                    Only completed appointments with a CPT can be invoiced.
+                    Appointments with a CPT can be invoiced. If needed, billing
+                    will mark the appointment as completed first.
                   </div>
                 </div>
 
@@ -314,7 +354,10 @@ function Billing_page() {
                         <td>#{inv.invoice_id}</td>
                         <td>#{inv.appointment_id}</td>
                         <td>{inv.patient_id}</td>
-                        <td>{inv.cpt_id}</td>
+                        <td>
+                          {appointmentById.get(inv.appointment_id)?.cpt_code ||
+                            inv.cpt_id}
+                        </td>
                         <td>
                           <span className={badgeForStatus(inv.status)}>
                             {inv.status || "—"}
