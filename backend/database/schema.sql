@@ -20,14 +20,6 @@ CREATE TABLE roles (
     name VARCHAR(50) NOT NULL UNIQUE
 );
 
--- Seed default roles
-INSERT INTO
-    roles (name)
-VALUES ('admin'),
-    ('doctor'),
-    ('nurse'),
-    ('receptionist');
-
 -- =============================================================================
 -- USERS
 -- Staff accounts; each user belongs to exactly one role
@@ -99,63 +91,6 @@ CREATE INDEX idx_cpt_codes_code ON cpt_codes (code);
 CREATE INDEX idx_cpt_codes_category ON cpt_codes (category);
 
 CREATE INDEX idx_cpt_codes_active ON cpt_codes (is_active);
-
--- Seed common CPT codes
-INSERT INTO
-    cpt_codes (
-        code,
-        description,
-        category,
-        default_price
-    )
-VALUES (
-        '99213',
-        'Office visit - established patient',
-        'Office Visit',
-        150.00
-    ),
-    (
-        '99214',
-        'Office visit - detailed',
-        'Office Visit',
-        200.00
-    ),
-    (
-        '99215',
-        'Office visit - comprehensive',
-        'Office Visit',
-        250.00
-    ),
-    (
-        '80053',
-        'Comprehensive metabolic panel',
-        'Lab Test',
-        45.00
-    ),
-    (
-        '85025',
-        'Complete blood count',
-        'Lab Test',
-        35.00
-    ),
-    (
-        '36415',
-        'Routine venipuncture',
-        'Lab Test',
-        25.00
-    ),
-    (
-        '90471',
-        'Immunization administration',
-        'Immunization',
-        30.00
-    ),
-    (
-        '90715',
-        'Tetanus, diphtheria toxoids vaccine',
-        'Immunization',
-        50.00
-    );
 
 -- =============================================================================
 -- CPT  (Current Procedural Terminology)
@@ -280,6 +215,8 @@ CREATE INDEX idx_appt_provider_date ON appointments (
 -- INVOICES
 -- Represents a finalized bill for an appointment / CPT record
 -- =============================================================================
+
+
 CREATE TABLE invoices (
     invoice_id SERIAL PRIMARY KEY,
 
@@ -297,11 +234,11 @@ CREATE TABLE invoices (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-    -- Prevent duplicate invoices for same appointment
-    CONSTRAINT uq_invoice_appointment UNIQUE (appointment_id)
-);
+-- Prevent duplicate invoices for same appointment
+CONSTRAINT uq_invoice_appointment UNIQUE (appointment_id) );
 
 CREATE INDEX idx_invoices_patient_id ON invoices (patient_id);
+
 CREATE INDEX idx_invoices_status ON invoices (status);
 
 -- =============================================================================
