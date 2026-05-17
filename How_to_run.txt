@@ -58,7 +58,7 @@ npx tree-node-cli -I "node_modules|.git|__pycache__"
 
 
 stress test
-cd backend/test/stress
+cd backend
 python -m locust -f tests/stress/locustfile.py --host http://localhost:5000 --users 100 --spawn-rate 2 
 open the link it provides for the interface
 
@@ -66,4 +66,5 @@ open the link it provides for the interface
 python -m tests.stress.seed_db
 
 stronger server to to stress test 
-\backend> waitress-serve --port=5002 --threads=100 app:app
+cd backend
+waitress-serve --port=5002 --threads=100 app:app
