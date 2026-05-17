@@ -17,13 +17,13 @@ import {
 
 // ── Navbar ──────────────────────────────────────────────────
 const RoleIcon = ({ role }) => {
-  if (role === 'Admin')        return <Shield size={12} />
-  if (role === 'Doctor')       return <Stethoscope size={12} />
-  if (role === 'Receptionist') return <UserCheck size={12} />
+  if (role === 'admin')        return <Shield size={12} />
+  if (role === 'doctor')       return <Stethoscope size={12} />
+  if (role === 'receptionist') return <UserCheck size={12} />
   return null
 }
 
-const NavBar = ({ role, handleRoleChange, handleSignOut }) => {
+const NavBar = ({ role, handleSignOut }) => {
   const { pathname } = useLocation()
   const cls = (path) => pathname === path ? 'nav-link active' : 'nav-link'
   const isLoggedIn = Boolean(localStorage.getItem('token'))
@@ -43,21 +43,21 @@ const NavBar = ({ role, handleRoleChange, handleSignOut }) => {
             <HomeIcon size={14} /> Dashboard
           </Link>
         </li>
-        {(role === 'Admin' || role === 'Doctor' || role === 'Receptionist') && (
+        {['admin', 'doctor', 'receptionist'].includes(role) && (
           <li>
             <Link to="/patients" className={cls('/patients')}>
               <Users size={14} /> Patients
             </Link>
           </li>
         )}
-        {(role === 'Admin' || role === 'Receptionist') && (
+        {['admin', 'receptionist'].includes(role) && (
           <li>
             <Link to="/create-patient" className={cls('/create-patient')}>
               <UserPlus size={14} /> New Patient
             </Link>
           </li>
         )}
-        {(role === 'Admin' || role === 'Doctor' || role === 'Receptionist') && (
+        {['admin', 'doctor', 'receptionist'].includes(role) && (
           <li>
             <Link to="/appointment" className={cls('/appointment')}>
               <ClipboardList size={14} /> Appointments
@@ -71,7 +71,7 @@ const NavBar = ({ role, handleRoleChange, handleSignOut }) => {
             </Link>
           </li>
         )}
-        {(role === 'Admin' || role === 'Doctor') && (
+        {['admin', 'doctor'].includes(role) && (
           <li>
             <Link to="/vitals" className={cls('/vitals')}>
               <Activity size={14} /> Vitals
@@ -83,7 +83,7 @@ const NavBar = ({ role, handleRoleChange, handleSignOut }) => {
             <FileText size={14} /> Plans
           </Link>
         </li>
-        {role === 'Admin' && (
+        {role === 'admin' && (
           <li>
             <Link to="/reports" className={cls('/reports')}>
               <BarChart2 size={14} /> Reports
@@ -93,23 +93,8 @@ const NavBar = ({ role, handleRoleChange, handleSignOut }) => {
       </ul>
 
       <div className="navbar-right">
-        <label htmlFor="role-switcher" className="sr-only">Switch role</label>
-        <select
-          id="role-switcher"
-          value={role}
-          onChange={handleRoleChange}
-          className="form-select"
-          style={{ width: 'auto', padding: '5px 30px 5px 10px', fontSize: '13px' }}
-          aria-label="Switch role"
-        >
-          <option value="">Guest</option>
-          <option value="Admin">Admin</option>
-          <option value="Doctor">Doctor</option>
-          <option value="Receptionist">Receptionist</option>
-        </select>
-
         {role && (
-          <span className="role-badge" aria-label={`Current role: ${role}`}>
+          <span className="role-badge" style={{ marginRight: 'var(--space-2)' }} aria-label={`Current role: ${role}`}>
             <RoleIcon role={role} />
             {role}
           </span>
@@ -139,11 +124,11 @@ const NavBar = ({ role, handleRoleChange, handleSignOut }) => {
 const NAV_CARDS = [
   {
     to: '/patients', label: 'Patient List', icon: <Users size={20} />, iconClass: 'icon-blue',
-    desc: 'Browse and manage patients', roles: ['Admin', 'Doctor', 'Receptionist'],
+    desc: 'Browse and manage patients', roles: ['admin', 'doctor', 'receptionist'],
   },
   {
     to: '/create-patient', label: 'New Patient', icon: <UserPlus size={20} />, iconClass: 'icon-green',
-    desc: 'Register a new patient', roles: ['Admin', 'Receptionist'],
+    desc: 'Register a new patient', roles: ['admin', 'receptionist'],
   },
   {
     to: '/calendar', label: 'Schedule', icon: <Calendar size={20} />, iconClass: 'icon-purple',
@@ -151,11 +136,11 @@ const NAV_CARDS = [
   },
   {
     to: '/appointment', label: 'Appointments', icon: <ClipboardList size={20} />, iconClass: 'icon-orange',
-    desc: 'Book a new appointment', roles: ['Admin', 'Doctor', 'Receptionist'],
+    desc: 'Book a new appointment', roles: ['admin', 'doctor', 'receptionist'],
   },
   {
     to: '/vitals', label: 'Vitals', icon: <Activity size={20} />, iconClass: 'icon-teal',
-    desc: 'Record patient measurements', roles: ['Admin', 'Doctor'],
+    desc: 'Record patient measurements', roles: ['admin', 'doctor'],
   },
   {
     to: '/plan', label: 'Health Plans', icon: <FileText size={20} />, iconClass: 'icon-blue',
@@ -163,14 +148,15 @@ const NAV_CARDS = [
   },
   {
     to: '/reports', label: 'Reports', icon: <BarChart2 size={20} />, iconClass: 'icon-orange',
-    desc: 'Financial revenue reports', roles: ['Admin'],
+    desc: 'Financial revenue reports', roles: ['admin'],
   },
 ]
 
 const Home = ({ role }) => {
-  const visible = NAV_CARDS.filter(
-    (c) => c.roles === null || c.roles.includes(role)
-  )
+  const visible = NAV_CARDS.filter((c) => {
+    if (c.roles === null) return true; // public cards
+    return c.roles.includes(role);
+  });
 
   return (
     <main className="page-wrapper">
@@ -190,7 +176,7 @@ const Home = ({ role }) => {
           <div className="alert alert-info" style={{ marginBottom: 'var(--space-6)' }} role="status">
             <LogIn size={15} aria-hidden="true" />
             <span>
-              Select a role in the nav bar to unlock restricted features, or{' '}
+              Select a role via sign in to unlock restricted features, or{' '}
               <Link to="/login" style={{ fontWeight: 'var(--font-semibold)' }}>sign in</Link> with your account.
             </span>
           </div>
@@ -283,15 +269,25 @@ const Home = ({ role }) => {
   )
 }
 
-// ── App ──────────────────────────────────────────────────────
+// ── App Wrapper Component ─────────────────────────────────────
 function App() {
-  const [role, setRole] = useState(localStorage.getItem('userRole') || '')
+  return (
+    <Routes>
+      <Route path="*" element={<AppContent />} />
+    </Routes>
+  )
+}
 
-  const handleRoleChange = (e) => {
-    const newRole = e.target.value
-    setRole(newRole)
-    localStorage.setItem('userRole', newRole)
-  }
+function AppContent() {
+  const [role, setRole] = useState(localStorage.getItem('userRole') || '')
+  const location = useLocation()
+
+  useEffect(() => {
+    const currentSavedRole = localStorage.getItem('userRole') || ''
+    if (currentSavedRole !== role) {
+      setRole(currentSavedRole)
+    }
+  }, [location.pathname])
 
   const handleSignOut = () => {
     localStorage.removeItem('token')
@@ -300,19 +296,16 @@ function App() {
     setRole('')
   }
 
-  useEffect(() => {
-    const saved = localStorage.getItem('userRole')
-    if (saved && saved !== role) setRole(saved)
-  }, [])
-
   const ProtectedRoute = ({ allowedRoles, children }) => {
-    if (!allowedRoles.includes(role)) return <Navigate to="/" replace />
+    if (!allowedRoles.includes(role)) {
+      return <Navigate to="/" replace />
+    }
     return children
   }
 
   return (
     <>
-      <NavBar role={role} handleRoleChange={handleRoleChange} handleSignOut={handleSignOut} />
+      <NavBar role={role} handleSignOut={handleSignOut} />
       <Routes>
         <Route path="/"       element={<Home role={role} />} />
         <Route path="/login"  element={<Login_page />} />
@@ -320,37 +313,37 @@ function App() {
         <Route path="/calendar" element={<Calendar_page />} />
 
         <Route path="/vitals" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Doctor']}>
+          <ProtectedRoute allowedRoles={['admin', 'doctor']}>
             <Vitals_page />
           </ProtectedRoute>
         } />
 
         <Route path="/create-patient" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Receptionist']}>
+          <ProtectedRoute allowedRoles={['admin', 'receptionist']}>
             <Create_patient />
           </ProtectedRoute>
         } />
 
         <Route path="/patients" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Doctor', 'Receptionist']}>
+          <ProtectedRoute allowedRoles={['admin', 'doctor', 'receptionist']}>
             <Patient_list_page />
           </ProtectedRoute>
         } />
 
         <Route path="/appointment" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Doctor', 'Receptionist']}>
+          <ProtectedRoute allowedRoles={['admin', 'doctor', 'receptionist']}>
             <Appointment_page />
           </ProtectedRoute>
         } />
 
         <Route path="/reports" element={
-          <ProtectedRoute allowedRoles={['Admin']}>
+          <ProtectedRoute allowedRoles={['admin']}>
             <Reports_page />
           </ProtectedRoute>
         } />
 
         <Route path="/records/:id" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Doctor', 'Receptionist']}>
+          <ProtectedRoute allowedRoles={['admin', 'doctor', 'receptionist']}>
             <Records_page />
           </ProtectedRoute>
         } />
