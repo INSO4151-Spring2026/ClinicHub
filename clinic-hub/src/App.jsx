@@ -12,7 +12,7 @@ import Records_page from './pages/Records_page'
 import {
   Users, Calendar, ClipboardList, Activity, BarChart2,
   Heart, LogIn, LogOut, Home as HomeIcon, Shield, Stethoscope, UserCheck,
-  UserPlus, FileText,
+  UserPlus, FileText, Github, Video, Presentation, Code2, ExternalLink
 } from 'lucide-react'
 
 // ── Navbar ──────────────────────────────────────────────────
@@ -212,34 +212,32 @@ const Home = ({ role }) => {
           </div>
         </section>
 
-        {/* Info grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-5)' }}>
-          <div className="card">
-            <div className="card-header"><h2 className="card-title">Tech Stack</h2></div>
-            <div className="card-body">
-              <ul style={{ paddingLeft: 'var(--space-5)', fontSize: 'var(--text-sm)', lineHeight: '2.1', color: 'var(--color-text-secondary)', listStyle: 'disc' }}>
+        {/* Info grid*/}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--space-4)', alignItems: 'stretch' }}>
+          
+          {/* Column 1: Tech Stack */}
+          <div className="card" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div className="card-header" style={{ padding: 'var(--space-2) var(--space-4)', display: 'flex', alignItems: 'center', minHeight: '37px' }}>
+              <h2 className="card-title" style={{ fontSize: 'var(--text-sm)', margin: '0' }}>Tech Stack</h2>
+            </div>
+            <div className="card-body" style={{ padding: 'var(--space-2) var(--space-4)', flex: '1' }}>
+              <ul style={{ paddingLeft: 'var(--space-4)', fontSize: 'var(--text-xs)', lineHeight: '1.7', color: 'var(--color-text-secondary)', listStyle: 'disc', margin: '0' }}>
                 <li><strong style={{ color: 'var(--color-text)' }}>Frontend:</strong> React 19 + Vite</li>
                 <li><strong style={{ color: 'var(--color-text)' }}>Routing:</strong> React Router v7</li>
-                <li><strong style={{ color: 'var(--color-text)' }}>Backend:</strong> Express (Node) + Flask</li>
+                <li><strong style={{ color: 'var(--color-text)' }}>Backend:</strong> Flask + Waitress WSGI</li>
+                <li><strong style={{ color: 'var(--color-text)' }}>Database:</strong> PostgreSQL Engine</li>
                 <li><strong style={{ color: 'var(--color-text)' }}>Auth:</strong> JWT Bearer Tokens</li>
               </ul>
             </div>
           </div>
 
-          <div className="card">
-            <div className="card-header">
-              <h2 className="card-title">Project Team</h2>
-              <a
-                href="https://docs.google.com/document/d/1nhnJKCCqy1WglL0vUUmTMAIHTmno4_g9t_rBls7df_8/edit?usp=sharing"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)' }}
-              >
-                View Docs →
-              </a>
+          {/* Column 2: Project Team */}
+          <div className="card" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div className="card-header" style={{ padding: 'var(--space-2) var(--space-4)', display: 'flex', alignItems: 'center', minHeight: '37px' }}>
+              <h2 className="card-title" style={{ fontSize: 'var(--text-sm)', margin: '0' }}>Project Team</h2>
             </div>
-            <div className="card-body">
-              <ul style={{ paddingLeft: 'var(--space-5)', fontSize: 'var(--text-sm)', lineHeight: '2.1', color: 'var(--color-text-secondary)', listStyle: 'disc' }}>
+            <div className="card-body" style={{ padding: 'var(--space-2) var(--space-4)', flex: '1' }}>
+              <ul style={{ paddingLeft: 'var(--space-4)', fontSize: 'var(--text-xs)', lineHeight: '1.7', color: 'var(--color-text-secondary)', listStyle: 'disc', margin: '0' }}>
                 <li>Alejandro A. Pérez Pabón</li>
                 <li>Christian N. Rodríguez Figueroa</li>
                 <li>Orlando G. Mercado Tellado</li>
@@ -247,6 +245,38 @@ const Home = ({ role }) => {
               </ul>
             </div>
           </div>
+
+          {/* Column 3: Deliverables */}
+          <div className="card" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div className="card-header" style={{ padding: 'var(--space-2) var(--space-4)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: '37px' }}>
+              <h2 className="card-title" style={{ fontSize: 'var(--text-sm)', margin: '0' }}>Deliverables</h2>
+            </div>
+            <div className="card-body" style={{ padding: 'var(--space-2) var(--space-4)', flex: '1' }}>
+              <ul style={{ paddingLeft: '0', listStyle: 'none', fontSize: 'var(--text-xs)', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', margin: '0' }}>
+                <li>
+                  <a href="https://docs.google.com/document/d/1nhnJKCCqy1WglL0vUUmTMAIHTmno4_g9t_rBls7df_8/edit?usp=sharing" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', fontWeight: 'var(--font-medium)' }}>
+                    <FileText size={13} /> Project Documentation <ExternalLink size={10} />
+                  </a>
+                </li>
+                <li>
+                  <a href="https://github.com/INSO4151-Spring2026/ClinicHub.git" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', fontWeight: 'var(--font-medium)' }}>
+                    <Github size={13} /> GitHub Repository <ExternalLink size={10} />
+                  </a>
+                </li>
+                <li>
+                  <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', fontWeight: 'var(--font-medium)' }}>
+                    <Video size={13} /> System Demo Video <ExternalLink size={10} />
+                  </a>
+                </li>
+                <li>
+                  <a href="https://docs.google.com/presentation/d/1TNwHPC-MJQhr0_7EmuwF5Nmo5wLwMsUa6BiyKVINPis/edit?usp=sharing" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', fontWeight: 'var(--font-medium)' }}>
+                    <Presentation size={13} /> Presentation Slides <ExternalLink size={10} />
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+
         </div>
       </div>
     </main>
