@@ -12,18 +12,18 @@ import Records_page from './pages/Records_page'
 import {
   Users, Calendar, ClipboardList, Activity, BarChart2,
   Heart, LogIn, LogOut, Home as HomeIcon, Shield, Stethoscope, UserCheck,
-  UserPlus, FileText,
+  UserPlus, FileText, Github, Video, Presentation, Code2, ExternalLink
 } from 'lucide-react'
 
 // ── Navbar ──────────────────────────────────────────────────
 const RoleIcon = ({ role }) => {
-  if (role === 'Admin')        return <Shield size={12} />
-  if (role === 'Doctor')       return <Stethoscope size={12} />
-  if (role === 'Receptionist') return <UserCheck size={12} />
+  if (role === 'admin')        return <Shield size={12} />
+  if (role === 'doctor')       return <Stethoscope size={12} />
+  if (role === 'receptionist') return <UserCheck size={12} />
   return null
 }
 
-const NavBar = ({ role, handleRoleChange, handleSignOut }) => {
+const NavBar = ({ role, handleSignOut }) => {
   const { pathname } = useLocation()
   const cls = (path) => pathname === path ? 'nav-link active' : 'nav-link'
   const isLoggedIn = Boolean(localStorage.getItem('token'))
@@ -43,47 +43,49 @@ const NavBar = ({ role, handleRoleChange, handleSignOut }) => {
             <HomeIcon size={14} /> Dashboard
           </Link>
         </li>
-        {(role === 'Admin' || role === 'Doctor' || role === 'Receptionist') && (
+        {['admin', 'doctor', 'receptionist'].includes(role) && (
           <li>
             <Link to="/patients" className={cls('/patients')}>
               <Users size={14} /> Patients
             </Link>
           </li>
         )}
-        {(role === 'Admin' || role === 'Receptionist') && (
+        {['admin', 'receptionist'].includes(role) && (
           <li>
             <Link to="/create-patient" className={cls('/create-patient')}>
               <UserPlus size={14} /> New Patient
             </Link>
           </li>
         )}
-        {(role === 'Admin' || role === 'Doctor' || role === 'Receptionist') && (
+        {['admin', 'doctor', 'receptionist'].includes(role) && (
           <li>
             <Link to="/appointment" className={cls('/appointment')}>
               <ClipboardList size={14} /> Appointments
             </Link>
           </li>
         )}
-        {role && (
+        {['admin', 'doctor', 'receptionist'].includes(role) && (
           <li>
             <Link to="/calendar" className={cls('/calendar')}>
               <Calendar size={14} /> Schedule
             </Link>
           </li>
         )}
-        {(role === 'Admin' || role === 'Doctor') && (
+        {['admin', 'doctor'].includes(role) && (
           <li>
             <Link to="/vitals" className={cls('/vitals')}>
               <Activity size={14} /> Vitals
             </Link>
           </li>
         )}
-        <li>
-          <Link to="/plan" className={cls('/plan')}>
-            <FileText size={14} /> Plans
-          </Link>
-        </li>
-        {role === 'Admin' && (
+        {['admin', 'receptionist'].includes(role) && (
+          <li>
+            <Link to="/plan" className={cls('/plan')}>
+              <FileText size={14} /> Plans
+            </Link>
+          </li>
+        )}
+        {role === 'admin' && (
           <li>
             <Link to="/reports" className={cls('/reports')}>
               <BarChart2 size={14} /> Reports
@@ -93,23 +95,8 @@ const NavBar = ({ role, handleRoleChange, handleSignOut }) => {
       </ul>
 
       <div className="navbar-right">
-        <label htmlFor="role-switcher" className="sr-only">Switch role</label>
-        <select
-          id="role-switcher"
-          value={role}
-          onChange={handleRoleChange}
-          className="form-select"
-          style={{ width: 'auto', padding: '5px 30px 5px 10px', fontSize: '13px' }}
-          aria-label="Switch role"
-        >
-          <option value="">Guest</option>
-          <option value="Admin">Admin</option>
-          <option value="Doctor">Doctor</option>
-          <option value="Receptionist">Receptionist</option>
-        </select>
-
         {role && (
-          <span className="role-badge" aria-label={`Current role: ${role}`}>
+          <span className="role-badge" style={{ marginRight: 'var(--space-2)' }} aria-label={`Current role: ${role}`}>
             <RoleIcon role={role} />
             {role}
           </span>
@@ -139,38 +126,39 @@ const NavBar = ({ role, handleRoleChange, handleSignOut }) => {
 const NAV_CARDS = [
   {
     to: '/patients', label: 'Patient List', icon: <Users size={20} />, iconClass: 'icon-blue',
-    desc: 'Browse and manage patients', roles: ['Admin', 'Doctor', 'Receptionist'],
+    desc: 'Browse and manage patients', roles: ['admin', 'doctor', 'receptionist'],
   },
   {
     to: '/create-patient', label: 'New Patient', icon: <UserPlus size={20} />, iconClass: 'icon-green',
-    desc: 'Register a new patient', roles: ['Admin', 'Receptionist'],
+    desc: 'Register a new patient', roles: ['admin', 'receptionist'],
   },
   {
     to: '/calendar', label: 'Schedule', icon: <Calendar size={20} />, iconClass: 'icon-purple',
-    desc: 'View and manage appointments', roles: null,
+    desc: 'View and manage appointments', roles: ['admin', 'doctor', 'receptionist'],
   },
   {
     to: '/appointment', label: 'Appointments', icon: <ClipboardList size={20} />, iconClass: 'icon-orange',
-    desc: 'Book a new appointment', roles: ['Admin', 'Doctor', 'Receptionist'],
+    desc: 'Book a new appointment', roles: ['admin', 'doctor', 'receptionist'],
   },
   {
     to: '/vitals', label: 'Vitals', icon: <Activity size={20} />, iconClass: 'icon-teal',
-    desc: 'Record patient measurements', roles: ['Admin', 'Doctor'],
+    desc: 'Record patient measurements', roles: ['admin', 'doctor'],
   },
   {
     to: '/plan', label: 'Health Plans', icon: <FileText size={20} />, iconClass: 'icon-blue',
-    desc: 'Manage billing & insurance', roles: null,
+    desc: 'Manage billing & insurance', roles: ['admin', 'receptionist'],
   },
   {
     to: '/reports', label: 'Reports', icon: <BarChart2 size={20} />, iconClass: 'icon-orange',
-    desc: 'Financial revenue reports', roles: ['Admin'],
+    desc: 'Financial revenue reports', roles: ['admin'],
   },
 ]
 
 const Home = ({ role }) => {
-  const visible = NAV_CARDS.filter(
-    (c) => c.roles === null || c.roles.includes(role)
-  )
+  const visible = NAV_CARDS.filter((c) => {
+    if (c.roles === null) return true; // public cards
+    return c.roles.includes(role);
+  });
 
   return (
     <main className="page-wrapper">
@@ -190,8 +178,8 @@ const Home = ({ role }) => {
           <div className="alert alert-info" style={{ marginBottom: 'var(--space-6)' }} role="status">
             <LogIn size={15} aria-hidden="true" />
             <span>
-              Select a role in the nav bar to unlock restricted features, or{' '}
-              <Link to="/login" style={{ fontWeight: 'var(--font-semibold)' }}>sign in</Link> with your account.
+             {' '}
+              <Link to="/login" style={{ fontWeight: 'var(--font-semibold)' }}>sign in</Link> with your account. to view the rest of the dashboard and access your clinic's information.
             </span>
           </div>
         )}
@@ -212,34 +200,32 @@ const Home = ({ role }) => {
           </div>
         </section>
 
-        {/* Info grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-5)' }}>
-          <div className="card">
-            <div className="card-header"><h2 className="card-title">Tech Stack</h2></div>
-            <div className="card-body">
-              <ul style={{ paddingLeft: 'var(--space-5)', fontSize: 'var(--text-sm)', lineHeight: '2.1', color: 'var(--color-text-secondary)', listStyle: 'disc' }}>
+        {/* Info grid*/}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--space-4)', alignItems: 'stretch' }}>
+          
+          {/* Column 1: Tech Stack */}
+          <div className="card" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div className="card-header" style={{ padding: 'var(--space-2) var(--space-4)', display: 'flex', alignItems: 'center', minHeight: '37px' }}>
+              <h2 className="card-title" style={{ fontSize: 'var(--text-sm)', margin: '0' }}>Tech Stack</h2>
+            </div>
+            <div className="card-body" style={{ padding: 'var(--space-2) var(--space-4)', flex: '1' }}>
+              <ul style={{ paddingLeft: 'var(--space-4)', fontSize: 'var(--text-xs)', lineHeight: '1.7', color: 'var(--color-text-secondary)', listStyle: 'disc', margin: '0' }}>
                 <li><strong style={{ color: 'var(--color-text)' }}>Frontend:</strong> React 19 + Vite</li>
                 <li><strong style={{ color: 'var(--color-text)' }}>Routing:</strong> React Router v7</li>
-                <li><strong style={{ color: 'var(--color-text)' }}>Backend:</strong> Express (Node) + Flask</li>
+                <li><strong style={{ color: 'var(--color-text)' }}>Backend:</strong> Flask + Waitress WSGI</li>
+                <li><strong style={{ color: 'var(--color-text)' }}>Database:</strong> PostgreSQL Engine</li>
                 <li><strong style={{ color: 'var(--color-text)' }}>Auth:</strong> JWT Bearer Tokens</li>
               </ul>
             </div>
           </div>
 
-          <div className="card">
-            <div className="card-header">
-              <h2 className="card-title">Project Team</h2>
-              <a
-                href="https://docs.google.com/document/d/1nhnJKCCqy1WglL0vUUmTMAIHTmno4_g9t_rBls7df_8/edit?usp=sharing"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)' }}
-              >
-                View Docs →
-              </a>
+          {/* Column 2: Project Team */}
+          <div className="card" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div className="card-header" style={{ padding: 'var(--space-2) var(--space-4)', display: 'flex', alignItems: 'center', minHeight: '37px' }}>
+              <h2 className="card-title" style={{ fontSize: 'var(--text-sm)', margin: '0' }}>Project Team</h2>
             </div>
-            <div className="card-body">
-              <ul style={{ paddingLeft: 'var(--space-5)', fontSize: 'var(--text-sm)', lineHeight: '2.1', color: 'var(--color-text-secondary)', listStyle: 'disc' }}>
+            <div className="card-body" style={{ padding: 'var(--space-2) var(--space-4)', flex: '1' }}>
+              <ul style={{ paddingLeft: 'var(--space-4)', fontSize: 'var(--text-xs)', lineHeight: '1.7', color: 'var(--color-text-secondary)', listStyle: 'disc', margin: '0' }}>
                 <li>Alejandro A. Pérez Pabón</li>
                 <li>Christian N. Rodríguez Figueroa</li>
                 <li>Orlando G. Mercado Tellado</li>
@@ -247,21 +233,63 @@ const Home = ({ role }) => {
               </ul>
             </div>
           </div>
+
+          {/* Column 3: Deliverables */}
+          <div className="card" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div className="card-header" style={{ padding: 'var(--space-2) var(--space-4)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: '37px' }}>
+              <h2 className="card-title" style={{ fontSize: 'var(--text-sm)', margin: '0' }}>Deliverables</h2>
+            </div>
+            <div className="card-body" style={{ padding: 'var(--space-2) var(--space-4)', flex: '1' }}>
+              <ul style={{ paddingLeft: '0', listStyle: 'none', fontSize: 'var(--text-xs)', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', margin: '0' }}>
+                <li>
+                  <a href="https://docs.google.com/document/d/1nhnJKCCqy1WglL0vUUmTMAIHTmno4_g9t_rBls7df_8/edit?usp=sharing" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', fontWeight: 'var(--font-medium)' }}>
+                    <FileText size={13} /> Project Documentation <ExternalLink size={10} />
+                  </a>
+                </li>
+                <li>
+                  <a href="https://github.com/INSO4151-Spring2026/ClinicHub.git" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', fontWeight: 'var(--font-medium)' }}>
+                    <Github size={13} /> GitHub Repository <ExternalLink size={10} />
+                  </a>
+                </li>
+                <li>
+                  <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', fontWeight: 'var(--font-medium)' }}>
+                    <Video size={13} /> System Demo Video <ExternalLink size={10} />
+                  </a>
+                </li>
+                <li>
+                  <a href="https://docs.google.com/presentation/d/1TNwHPC-MJQhr0_7EmuwF5Nmo5wLwMsUa6BiyKVINPis/edit?usp=sharing" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', fontWeight: 'var(--font-medium)' }}>
+                    <Presentation size={13} /> Presentation Slides <ExternalLink size={10} />
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+
         </div>
       </div>
     </main>
   )
 }
 
-// ── App ──────────────────────────────────────────────────────
+// ── App Wrapper Component ─────────────────────────────────────
 function App() {
-  const [role, setRole] = useState(localStorage.getItem('userRole') || '')
+  return (
+    <Routes>
+      <Route path="*" element={<AppContent />} />
+    </Routes>
+  )
+}
 
-  const handleRoleChange = (e) => {
-    const newRole = e.target.value
-    setRole(newRole)
-    localStorage.setItem('userRole', newRole)
-  }
+function AppContent() {
+  const [role, setRole] = useState(localStorage.getItem('userRole') || '')
+  const location = useLocation()
+
+  useEffect(() => {
+    const currentSavedRole = localStorage.getItem('userRole') || ''
+    if (currentSavedRole !== role) {
+      setRole(currentSavedRole)
+    }
+  }, [location.pathname])
 
   const handleSignOut = () => {
     localStorage.removeItem('token')
@@ -270,57 +298,64 @@ function App() {
     setRole('')
   }
 
-  useEffect(() => {
-    const saved = localStorage.getItem('userRole')
-    if (saved && saved !== role) setRole(saved)
-  }, [])
-
   const ProtectedRoute = ({ allowedRoles, children }) => {
-    if (!allowedRoles.includes(role)) return <Navigate to="/" replace />
+    if (!allowedRoles.includes(role)) {
+      return <Navigate to="/" replace />
+    }
     return children
   }
 
   return (
     <>
-      <NavBar role={role} handleRoleChange={handleRoleChange} handleSignOut={handleSignOut} />
+      <NavBar role={role} handleSignOut={handleSignOut} />
       <Routes>
         <Route path="/"       element={<Home role={role} />} />
         <Route path="/login"  element={<Login_page />} />
-        <Route path="/plan"   element={<Plan_page />} />
-        <Route path="/calendar" element={<Calendar_page />} />
+
+        <Route path="/plan" element={
+          <ProtectedRoute allowedRoles={['admin', 'receptionist']}>
+            <Plan_page />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/calendar" element={
+          <ProtectedRoute allowedRoles={['admin', 'doctor', 'receptionist']}>
+            <Calendar_page />
+          </ProtectedRoute>
+        } />
 
         <Route path="/vitals" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Doctor']}>
+          <ProtectedRoute allowedRoles={['admin', 'doctor']}>
             <Vitals_page />
           </ProtectedRoute>
         } />
 
         <Route path="/create-patient" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Receptionist']}>
+          <ProtectedRoute allowedRoles={['admin', 'receptionist']}>
             <Create_patient />
           </ProtectedRoute>
         } />
 
         <Route path="/patients" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Doctor', 'Receptionist']}>
+          <ProtectedRoute allowedRoles={['admin', 'doctor', 'receptionist']}>
             <Patient_list_page />
           </ProtectedRoute>
         } />
 
         <Route path="/appointment" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Doctor', 'Receptionist']}>
+          <ProtectedRoute allowedRoles={['admin', 'doctor', 'receptionist']}>
             <Appointment_page />
           </ProtectedRoute>
         } />
 
         <Route path="/reports" element={
-          <ProtectedRoute allowedRoles={['Admin']}>
+          <ProtectedRoute allowedRoles={['admin']}>
             <Reports_page />
           </ProtectedRoute>
         } />
 
         <Route path="/records/:id" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Doctor', 'Receptionist']}>
+          <ProtectedRoute allowedRoles={['admin', 'doctor', 'receptionist']}>
             <Records_page />
           </ProtectedRoute>
         } />
