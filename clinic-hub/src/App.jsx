@@ -64,7 +64,7 @@ const NavBar = ({ role, handleSignOut }) => {
             </Link>
           </li>
         )}
-        {role && (
+        {['admin', 'doctor', 'receptionist'].includes(role) && (
           <li>
             <Link to="/calendar" className={cls('/calendar')}>
               <Calendar size={14} /> Schedule
@@ -78,11 +78,13 @@ const NavBar = ({ role, handleSignOut }) => {
             </Link>
           </li>
         )}
-        <li>
-          <Link to="/plan" className={cls('/plan')}>
-            <FileText size={14} /> Plans
-          </Link>
-        </li>
+        {['admin', 'receptionist'].includes(role) && (
+          <li>
+            <Link to="/plan" className={cls('/plan')}>
+              <FileText size={14} /> Plans
+            </Link>
+          </li>
+        )}
         {role === 'admin' && (
           <li>
             <Link to="/reports" className={cls('/reports')}>
@@ -132,7 +134,7 @@ const NAV_CARDS = [
   },
   {
     to: '/calendar', label: 'Schedule', icon: <Calendar size={20} />, iconClass: 'icon-purple',
-    desc: 'View and manage appointments', roles: null,
+    desc: 'View and manage appointments', roles: ['admin', 'doctor', 'receptionist'],
   },
   {
     to: '/appointment', label: 'Appointments', icon: <ClipboardList size={20} />, iconClass: 'icon-orange',
@@ -144,7 +146,7 @@ const NAV_CARDS = [
   },
   {
     to: '/plan', label: 'Health Plans', icon: <FileText size={20} />, iconClass: 'icon-blue',
-    desc: 'Manage billing & insurance', roles: null,
+    desc: 'Manage billing & insurance', roles: ['admin', 'receptionist'],
   },
   {
     to: '/reports', label: 'Reports', icon: <BarChart2 size={20} />, iconClass: 'icon-orange',
@@ -176,8 +178,8 @@ const Home = ({ role }) => {
           <div className="alert alert-info" style={{ marginBottom: 'var(--space-6)' }} role="status">
             <LogIn size={15} aria-hidden="true" />
             <span>
-              Select a role via sign in to unlock restricted features, or{' '}
-              <Link to="/login" style={{ fontWeight: 'var(--font-semibold)' }}>sign in</Link> with your account.
+             {' '}
+              <Link to="/login" style={{ fontWeight: 'var(--font-semibold)' }}>sign in</Link> with your account. to view the rest of the dashboard and access your clinic's information.
             </span>
           </div>
         )}
@@ -309,8 +311,18 @@ function AppContent() {
       <Routes>
         <Route path="/"       element={<Home role={role} />} />
         <Route path="/login"  element={<Login_page />} />
-        <Route path="/plan"   element={<Plan_page />} />
-        <Route path="/calendar" element={<Calendar_page />} />
+
+        <Route path="/plan" element={
+          <ProtectedRoute allowedRoles={['admin', 'receptionist']}>
+            <Plan_page />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/calendar" element={
+          <ProtectedRoute allowedRoles={['admin', 'doctor', 'receptionist']}>
+            <Calendar_page />
+          </ProtectedRoute>
+        } />
 
         <Route path="/vitals" element={
           <ProtectedRoute allowedRoles={['admin', 'doctor']}>

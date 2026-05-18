@@ -165,50 +165,7 @@ function Plan_page() {
             </div>
           </div>
 
-          {/* Insurance Card Photo */}
-          <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
-            <div className="card-header">
-              <h2 className="card-title">Insurance Card Photo</h2>
-            </div>
-            <div className="card-body">
-              <label
-                className={`upload-zone ${id_photo ? 'active' : ''}`}
-                htmlFor="insurance_photo_input"
-                role="button"
-                aria-label="Upload insurance card photo"
-              >
-                {previewUrl ? (
-                  <div>
-                    <img
-                      src={previewUrl}
-                      alt="Insurance card preview"
-                      style={{ width: '100%', maxHeight: '160px', objectFit: 'contain', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', marginBottom: 'var(--space-2)' }}
-                    />
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-2)' }}>
-                      <CheckCircle size={15} style={{ color: 'var(--color-success)' }} aria-hidden="true" />
-                      <span className="upload-title" style={{ color: 'var(--color-success)' }}>
-                        {id_photo.name}
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <Camera size={28} style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-2)' }} aria-hidden="true" />
-                    <div className="upload-title">Upload Insurance Card Photo</div>
-                    <div className="upload-subtitle">JPG, PNG or WEBP · Click to browse</div>
-                  </>
-                )}
-                <input
-                  type="file"
-                  id="insurance_photo_input"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  style={{ display: 'none' }}
-                  aria-label="Select insurance card photo file"
-                />
-              </label>
-            </div>
-          </div>
+         
 
           {/* Actions */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
