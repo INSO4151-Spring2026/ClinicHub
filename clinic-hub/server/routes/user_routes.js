@@ -265,6 +265,36 @@ router.get(
   },
 );
 
+router.get(
+  "/patients/:id/plan",
+  authorize([ROLES.RECEPTIONIST, ROLES.ADMIN, ROLES.DOCTOR, ROLES.NURSE]),
+  async (req, res) => {
+    try {
+      const patientId = req.params.id;
+      const response = await fetch(
+        `${FLASK_BASE}/api/patients/${patientId}/plan`,
+        {
+          method: "GET",
+          headers: { Authorization: req.headers.authorization },
+        },
+      );
+
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { message: text };
+      }
+
+      return res.status(response.status).json(data);
+    } catch (err) {
+      console.error("Proxy error:", err);
+      return res.status(502).json({ message: "Flask service unreachable" });
+    }
+  },
+);
+
 router.post(
   "/patients",
   authorize([ROLES.RECEPTIONIST, ROLES.ADMIN, ROLES.DOCTOR]),
@@ -282,6 +312,40 @@ router.post(
       res.status(response.status).json(data);
     } catch (err) {
       res.status(502).json({ message: "Flask service unreachable" });
+    }
+  },
+);
+
+router.post(
+  "/patients/:id/plan",
+  authorize([ROLES.RECEPTIONIST, ROLES.ADMIN]),
+  async (req, res) => {
+    try {
+      const patientId = req.params.id;
+      const response = await fetch(
+        `${FLASK_BASE}/api/patients/${patientId}/plan`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: req.headers.authorization,
+          },
+          body: JSON.stringify(req.body),
+        },
+      );
+
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { message: text };
+      }
+
+      return res.status(response.status).json(data);
+    } catch (err) {
+      console.error("Proxy error:", err);
+      return res.status(502).json({ message: "Flask service unreachable" });
     }
   },
 );
@@ -387,64 +451,87 @@ router.get(
   },
 );
 // --- 9. INVOICE ---
-router.post('/invoices', authorize([ROLES.RECEPTIONIST, ROLES.ADMIN]), async (req, res) => {
-  try {
-    const response = await fetch(`${FLASK_BASE}/api/invoices`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': req.headers.authorization 
-      },
-      body: JSON.stringify(req.body)
-    });
-    const data = await response.json();
-    res.status(response.status).json(data);
-  } catch (err) {
-    res.status(502).json({ message: "Flask service unreachable" });
-  }
-});
+router.post(
+  "/invoices",
+  authorize([ROLES.RECEPTIONIST, ROLES.ADMIN]),
+  async (req, res) => {
+    try {
+      const response = await fetch(`${FLASK_BASE}/api/invoices`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: req.headers.authorization,
+        },
+        body: JSON.stringify(req.body),
+      });
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } catch (err) {
+      res.status(502).json({ message: "Flask service unreachable" });
+    }
+  },
+);
 
-router.get('/invoices', authorize([ROLES.RECEPTIONIST, ROLES.DOCTOR, ROLES.ADMIN]), async (req, res) => {
-  try {
-    // Forward query parameters if they exist (e.g., patient_id)
-    const queryString = req.url.includes('?') ? `?${req.url.split('?')[1]}` : '';
-    const response = await fetch(`${FLASK_BASE}/api/invoices${queryString}`, {
-      method: 'GET',
-      headers: { 'Authorization': req.headers.authorization }
-    });
-    const data = await response.json();
-    res.status(response.status).json(data);
-  } catch (err) {
-    res.status(502).json({ message: "Flask service unreachable" });
-  }
-});
+router.get(
+  "/invoices",
+  authorize([ROLES.RECEPTIONIST, ROLES.DOCTOR, ROLES.ADMIN]),
+  async (req, res) => {
+    try {
+      // Forward query parameters if they exist (e.g., patient_id)
+      const queryString = req.url.includes("?")
+        ? `?${req.url.split("?")[1]}`
+        : "";
+      const response = await fetch(`${FLASK_BASE}/api/invoices${queryString}`, {
+        method: "GET",
+        headers: { Authorization: req.headers.authorization },
+      });
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } catch (err) {
+      res.status(502).json({ message: "Flask service unreachable" });
+    }
+  },
+);
 
-router.get('/invoices/:id', authorize([ROLES.RECEPTIONIST, ROLES.DOCTOR, ROLES.ADMIN]), async (req, res) => {
-  try {
-    const response = await fetch(`${FLASK_BASE}/api/invoices/${req.params.id}`, {
-      method: 'GET',
-      headers: { 'Authorization': req.headers.authorization }
-    });
-    const data = await response.json();
-    res.status(response.status).json(data);
-  } catch (err) {
-    res.status(502).json({ message: "Flask service unreachable" });
-  }
-});
+router.get(
+  "/invoices/:id",
+  authorize([ROLES.RECEPTIONIST, ROLES.DOCTOR, ROLES.ADMIN]),
+  async (req, res) => {
+    try {
+      const response = await fetch(
+        `${FLASK_BASE}/api/invoices/${req.params.id}`,
+        {
+          method: "GET",
+          headers: { Authorization: req.headers.authorization },
+        },
+      );
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } catch (err) {
+      res.status(502).json({ message: "Flask service unreachable" });
+    }
+  },
+);
 
-router.patch('/invoices/:id/pay', authorize([ROLES.RECEPTIONIST, ROLES.ADMIN]), async (req, res) => {
-  try {
-    const response = await fetch(`${FLASK_BASE}/api/invoices/${req.params.id}/pay`, {
-      method: 'PATCH',
-      headers: { 'Authorization': req.headers.authorization }
-    });
-    const data = await response.json();
-    res.status(response.status).json(data);
-  } catch (err) {
-    res.status(502).json({ message: "Flask service unreachable" });
-  }
-});
-
+router.patch(
+  "/invoices/:id/pay",
+  authorize([ROLES.RECEPTIONIST, ROLES.ADMIN]),
+  async (req, res) => {
+    try {
+      const response = await fetch(
+        `${FLASK_BASE}/api/invoices/${req.params.id}/pay`,
+        {
+          method: "PATCH",
+          headers: { Authorization: req.headers.authorization },
+        },
+      );
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } catch (err) {
+      res.status(502).json({ message: "Flask service unreachable" });
+    }
+  },
+);
 
 // --- 9. INVOICES ---
 router.get(

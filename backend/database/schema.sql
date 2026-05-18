@@ -72,6 +72,28 @@ CREATE INDEX idx_patients_last_name ON patients (last_name);
 CREATE INDEX idx_patients_email ON patients (email);
 
 -- =============================================================================
+-- INSURANCE_PLANS
+-- Active insurance plan(s) for a patient. One plan should be marked active.
+-- =============================================================================
+CREATE TABLE insurance_plans (
+    plan_id SERIAL PRIMARY KEY,
+    patient_id INT NOT NULL REFERENCES patients (patient_id) ON DELETE CASCADE,
+    carrier_name VARCHAR(120) NOT NULL,
+    member_id VARCHAR(80) NOT NULL,
+    group_id VARCHAR(80),
+    plan_type VARCHAR(20),
+    effective_date DATE,
+    copay DECIMAL(10, 2) CHECK (copay >= 0),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_insurance_plans_patient_id ON insurance_plans (patient_id);
+
+CREATE INDEX idx_insurance_plans_active ON insurance_plans (is_active);
+
+-- =============================================================================
 -- CPT_CODES
 -- Standard CPT code definitions for procedures and services
 -- Used by frontend for dropdowns and price lookups
