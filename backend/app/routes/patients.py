@@ -6,6 +6,7 @@ from app.utils.decorators import require_auth, require_role
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -366,7 +367,9 @@ def list_patients():
             per_page = 100
 
         # Get search parameter
-        search = request.args.get("search", "", type=str)
+        # NOTE: The UI can send multi-word searches like "First Last".
+        # We split on whitespace so each term is matched independently.
+        search = (request.args.get("search", "", type=str) or "").strip()
 
         # Get sorting parameters
         sort_by = request.args.get("sort_by", "last_name", type=str)
@@ -389,14 +392,17 @@ def list_patients():
 
         # Apply search filter if provided
         if search:
-            search_filter = f"%{search}%"
-            query = query.filter(
-                db.or_(
-                    Patient.first_name.ilike(search_filter),
-                    Patient.last_name.ilike(search_filter),
-                    Patient.email.ilike(search_filter),
+            terms = [t for t in re.split(r"\s+", search) if t]
+            for term in terms:
+                search_filter = f"%{term}%"
+                # AND across terms; OR across fields within each term.
+                query = query.filter(
+                    db.or_(
+                        Patient.first_name.ilike(search_filter),
+                        Patient.last_name.ilike(search_filter),
+                        Patient.email.ilike(search_filter),
+                    )
                 )
-            )
 
         # Apply sorting
         sort_column = getattr(Patient, sort_by)
