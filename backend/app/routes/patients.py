@@ -229,7 +229,7 @@ def upsert_patient_plan(patient_id: int):
 # -----------------------------------------------------------------------------
 @patients.route("/<int:patient_id>", methods=["PUT"])
 @require_auth
-@require_role("admin", "doctor", "nurse")
+@require_role("admin", "doctor", "nurse", "receptionist")
 def update_patient(patient_id):
     """
     Update an existing patient record
