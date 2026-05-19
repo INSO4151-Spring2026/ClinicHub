@@ -335,9 +335,9 @@ function Plan_page() {
               )}
             </button>
 
-            <Link to="/" tabIndex={-1}>
+            <Link to="/patients" tabIndex={-1}>
               <button type="button" className="btn btn-secondary btn-full">
-                ← Back to Dashboard
+                ← Back to Patients Dashboard
               </button>
             </Link>
           </div>

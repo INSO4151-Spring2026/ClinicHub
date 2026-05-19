@@ -118,13 +118,6 @@ const NavBar = ({ role, handleSignOut }) => {
         )}
         {["admin", "receptionist"].includes(role) && (
           <li>
-            <Link to="/plan" className={cls("/plan")}>
-              <FileText size={14} /> Plans
-            </Link>
-          </li>
-        )}
-        {["admin", "receptionist"].includes(role) && (
-          <li>
             <Link to="/billing" className={cls("/billing")}>
               <DollarSign size={14} /> Billing
             </Link>
@@ -212,14 +205,6 @@ const NAV_CARDS = [
     iconClass: "icon-teal",
     desc: "Record patient measurements",
     roles: ["admin", "doctor"],
-  },
-  {
-    to: "/plan",
-    label: "Health Plans",
-    icon: <FileText size={20} />,
-    iconClass: "icon-blue",
-    desc: "Manage billing & insurance",
-    roles: ["admin", "receptionist"],
   },
   {
     to: "/billing",
