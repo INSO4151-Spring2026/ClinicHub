@@ -4,8 +4,23 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from config import config
 
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
+
+import sqlite3
+
 # Initialize extensions (not yet bound to an app)
 db = SQLAlchemy()
+
+
+# SQLite does not enforce foreign keys (or ON DELETE CASCADE) unless explicitly enabled.
+# Enable it per-connection so local-dev/test SQLite behaves closer to Postgres.
+@event.listens_for(Engine, "connect")
+def _set_sqlite_pragma(dbapi_connection, connection_record):
+    if isinstance(dbapi_connection, sqlite3.Connection):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 
 def create_app(config_name="development"):
