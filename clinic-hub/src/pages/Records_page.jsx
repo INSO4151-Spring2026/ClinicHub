@@ -12,6 +12,7 @@ import {
   Droplets,
   AlertCircle,
 } from "lucide-react";
+import { Mars, Venus, VenusAndMars } from "lucide-react";
 
 const Records_page = () => {
   const { id } = useParams();
@@ -117,7 +118,24 @@ const Records_page = () => {
       icon: <Calendar size={13} />,
       type: "date",
     },
-    { key: "blood_type", label: "Blood Type", icon: <Droplets size={13} /> },
+    { 
+      key: "sex", 
+      label: "Sex", 
+      icon: <VenusAndMars size={13} />, 
+    },
+    {
+      key: "emergency_contact_name",
+      label: "Emergency Contact Name",
+      icon: <User size={13} />,
+    },
+    {
+      key: "emergency_contact_phone",
+      label: "Emergency Contact Phone",
+      icon: <Phone size={13} />,
+      type: "tel",
+      autoComplete: "tel",
+    },
+
   ];
 
   /* ── Loading ── */
