@@ -110,8 +110,97 @@ const Appointment_page = () => {
       return;
     }
 
+    const getUserIdFromToken = (jwtToken) => {
+      try {
+        const parts = String(jwtToken).split(".");
+        if (parts.length < 2) return null;
+        const base64Url = parts[1];
+        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+        const padded = base64.padEnd(
+          base64.length + ((4 - (base64.length % 4)) % 4),
+          "=",
+        );
+        const json = atob(padded);
+        const payload = JSON.parse(json);
+        const id = payload?.user_id;
+        return typeof id === "number" ? id : Number(id);
+      } catch {
+        return null;
+      }
+    };
+
+    const providerUserId = getUserIdFromToken(token);
+    if (!providerUserId || Number.isNaN(providerUserId)) {
+      setError(
+        "Could not determine the logged-in provider. Please log in again.",
+      );
+      setLoading(false);
+      return;
+    }
+
     if (!formData.cptCodeId) {
       setError("Please select a service (CPT code) before booking.");
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.email || !String(formData.email).trim()) {
+      setError("Please enter the patient's email address.");
+      setLoading(false);
+      return;
+    }
+
+    const email = String(formData.email).trim();
+
+    const resolvePatientIdByEmail = async () => {
+      const res = await fetch(
+        `http://localhost:5000/api/patients?search=${encodeURIComponent(email)}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      if (res.status === 401) {
+        navigate("/login");
+        return { unauthorized: true, patientId: null };
+      }
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(
+          data?.error ||
+            data?.message ||
+            `Failed to look up patient by email (HTTP ${res.status}).`,
+        );
+        return { unauthorized: false, patientId: null };
+      }
+
+      const patients = Array.isArray(data?.patients) ? data.patients : [];
+      const exact = patients.find(
+        (p) => String(p?.email || "").toLowerCase() === email.toLowerCase(),
+      );
+
+      const match = exact || patients[0] || null;
+      return { unauthorized: false, patientId: match?.patient_id ?? null };
+    };
+
+    const lookup = await resolvePatientIdByEmail();
+    if (lookup?.unauthorized) {
+      setLoading(false);
+      return;
+    }
+
+    const patientId = lookup?.patientId ?? null;
+    if (!patientId) {
+      if (!error) {
+        setError(
+          "Patient not found for that email. Create the patient record first.",
+        );
+      }
       setLoading(false);
       return;
     }
@@ -120,8 +209,8 @@ const Appointment_page = () => {
     const end = new Date(start.getTime() + 30 * 60 * 1000);
 
     const payload = {
-      patient_id: 1,
-      provider_user_id: 1,
+      patient_id: patientId,
+      provider_user_id: providerUserId,
       scheduled_start: start.toISOString(),
       scheduled_end: end.toISOString(),
       cpt_code_id: Number(formData.cptCodeId),
