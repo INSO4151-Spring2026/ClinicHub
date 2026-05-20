@@ -499,7 +499,7 @@ const Home = ({ role }) => {
                 </li>
                 <li>
                   <a
-                    href="https://youtube.com"
+                    href="https://youtu.be/XgnzBfk7lzg"
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{
@@ -509,7 +509,7 @@ const Home = ({ role }) => {
                       fontWeight: "var(--font-medium)",
                     }}
                   >
-                    <Video size={13} /> System Demo Video{" "}
+                    <Video size={13} /> Elevator Pitch Video{" "}
                     <ExternalLink size={10} />
                   </a>
                 </li>
