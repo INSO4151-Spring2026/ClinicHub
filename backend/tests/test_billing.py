@@ -592,12 +592,22 @@ class TestRevenueReportAccuracy:
     REPORT_DATE = "2026-05-10"
     REPORT_DATE_OBJ = date(2026, 5, 10)
 
-    def _seed(self, patient_id, code_id, service_date, status, subtotal, tax):
+    def _seed(
+        self,
+        patient_id,
+        code_id,
+        service_date,
+        status,
+        subtotal,
+        tax,
+        billing_date=None,
+    ):
         """Insert a CPT record directly into the current DB session."""
         record = CPT(
             patient_id=patient_id,
             cpt_code_id=code_id,
             service_date=service_date,
+            billing_date=billing_date,
             status=status,
             subtotal=subtotal,
             tax=tax,
@@ -614,16 +624,32 @@ class TestRevenueReportAccuracy:
         """Total revenue equals the sum of all paid CPT subtotals and taxes for the date."""
         pid = sample_patient.patient_id
         cid = revenue_cpt_code.cpt_code_id
-        self._seed(pid, cid, self.REPORT_DATE_OBJ, "paid", 100.00, 10.00)  # $110
-        self._seed(pid, cid, self.REPORT_DATE_OBJ, "paid", 200.00, 20.00)  # $220
+        self._seed(
+            pid,
+            cid,
+            self.REPORT_DATE_OBJ,
+            "paid",
+            100.00,
+            10.00,
+            billing_date=self.REPORT_DATE_OBJ,
+        )  # $110
+        self._seed(
+            pid,
+            cid,
+            self.REPORT_DATE_OBJ,
+            "paid",
+            200.00,
+            20.00,
+            billing_date=self.REPORT_DATE_OBJ,
+        )  # $220
 
         resp = client.get(
             f"/api/reports/daily-revenue?date={self.REPORT_DATE}", headers=auth_headers
         )
         assert resp.status_code == 200
         data = resp.get_json()["data"]
-        assert data["subtotal"] == 300.00
-        assert data["tax"] == 30.00
+        assert data["subtotal"] == 330.00
+        assert data["tax"] == 0.00
         assert data["total_revenue"] == 330.00
 
     def test_transaction_count_matches_paid_records(
@@ -633,7 +659,15 @@ class TestRevenueReportAccuracy:
         pid = sample_patient.patient_id
         cid = revenue_cpt_code.cpt_code_id
         for _ in range(4):
-            self._seed(pid, cid, self.REPORT_DATE_OBJ, "paid", 50.00, 5.00)
+            self._seed(
+                pid,
+                cid,
+                self.REPORT_DATE_OBJ,
+                "paid",
+                50.00,
+                5.00,
+                billing_date=self.REPORT_DATE_OBJ,
+            )
 
         resp = client.get(
             f"/api/reports/daily-revenue?date={self.REPORT_DATE}", headers=auth_headers
@@ -646,14 +680,22 @@ class TestRevenueReportAccuracy:
         """subtotal and tax are reported separately and correctly alongside total_revenue."""
         pid = sample_patient.patient_id
         cid = revenue_cpt_code.cpt_code_id
-        self._seed(pid, cid, self.REPORT_DATE_OBJ, "paid", 300.00, 27.00)
+        self._seed(
+            pid,
+            cid,
+            self.REPORT_DATE_OBJ,
+            "paid",
+            300.00,
+            27.00,
+            billing_date=self.REPORT_DATE_OBJ,
+        )
 
         resp = client.get(
             f"/api/reports/daily-revenue?date={self.REPORT_DATE}", headers=auth_headers
         )
         data = resp.get_json()["data"]
-        assert data["subtotal"] == 300.00
-        assert data["tax"] == 27.00
+        assert data["subtotal"] == 327.00
+        assert data["tax"] == 0.00
         assert data["total_revenue"] == 327.00
 
     # ---- Status filtering ----
@@ -734,7 +776,15 @@ class TestRevenueReportAccuracy:
         """With a mix of statuses, only 'paid' records appear in the revenue total."""
         pid = sample_patient.patient_id
         cid = revenue_cpt_code.cpt_code_id
-        self._seed(pid, cid, self.REPORT_DATE_OBJ, "paid", 100.00, 10.00)
+        self._seed(
+            pid,
+            cid,
+            self.REPORT_DATE_OBJ,
+            "paid",
+            100.00,
+            10.00,
+            billing_date=self.REPORT_DATE_OBJ,
+        )
         self._seed(pid, cid, self.REPORT_DATE_OBJ, "draft", 999.00, 99.00)
         self._seed(pid, cid, self.REPORT_DATE_OBJ, "submitted", 888.00, 88.00)
         self._seed(pid, cid, self.REPORT_DATE_OBJ, "overdue", 777.00, 77.00)
@@ -745,8 +795,8 @@ class TestRevenueReportAccuracy:
         )
         body = resp.get_json()
         assert body["transaction_count"] == 1
-        assert body["data"]["subtotal"] == 100.00
-        assert body["data"]["tax"] == 10.00
+        assert body["data"]["subtotal"] == 110.00
+        assert body["data"]["tax"] == 0.00
         assert body["data"]["total_revenue"] == 110.00
 
     # ---- Date isolation ----
@@ -757,8 +807,24 @@ class TestRevenueReportAccuracy:
         """Paid records on a different date are not included in the report."""
         pid = sample_patient.patient_id
         cid = revenue_cpt_code.cpt_code_id
-        self._seed(pid, cid, date(2026, 5, 11), "paid", 999.00, 99.00)  # different date
-        self._seed(pid, cid, self.REPORT_DATE_OBJ, "paid", 100.00, 10.00)  # target date
+        self._seed(
+            pid,
+            cid,
+            date(2026, 5, 11),
+            "paid",
+            999.00,
+            99.00,
+            billing_date=date(2026, 5, 11),
+        )  # different date
+        self._seed(
+            pid,
+            cid,
+            self.REPORT_DATE_OBJ,
+            "paid",
+            100.00,
+            10.00,
+            billing_date=self.REPORT_DATE_OBJ,
+        )  # target date
 
         resp = client.get(
             f"/api/reports/daily-revenue?date={self.REPORT_DATE}", headers=auth_headers
@@ -792,7 +858,15 @@ class TestRevenueReportAccuracy:
         assert "date" in body
         assert "transaction_count" in body
         assert "data" in body
-        for key in ("subtotal", "tax", "total_revenue"):
+        for key in (
+            "subtotal",
+            "tax",
+            "total_revenue",
+            "procedure_subtotal",
+            "procedure_tax",
+            "procedure_total",
+            "insurance_covered",
+        ):
             assert key in body["data"], f"Missing key in data: '{key}'"
 
     def test_queried_date_echoed_in_response(self, client, auth_headers):

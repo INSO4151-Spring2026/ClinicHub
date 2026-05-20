@@ -38,7 +38,12 @@ const Patient_list = () => {
       setLoading(true);
       const token = localStorage.getItem("token");
       try {
-        const params = new URLSearchParams({ page, per_page: PER_PAGE });
+        const params = new URLSearchParams({
+          page,
+          per_page: PER_PAGE,
+          sort_by: "patient_id",
+          order: "asc",
+        });
         if (debouncedSearch) params.set("search", debouncedSearch);
 
         const response = await fetch(
