@@ -23,7 +23,7 @@ def admin_stats():
 
 @compat.route("/patient/<int:patient_id>/records", methods=["GET"])
 @require_auth
-@require_role("admin", "doctor")
+@require_role("admin", "doctor", "nurse")
 def patient_records(patient_id: int):
     return jsonify(
         {
@@ -44,12 +44,6 @@ def patient_records(patient_id: int):
         }
     ), 200
 
-
-@compat.route("/vitals", methods=["POST"])
-@require_auth
-@require_role("admin", "doctor")
-def submit_vitals():
-    return jsonify({"message": "Vitals saved to patient record."}), 201
 
 
 @compat.route("/billing", methods=["POST"])

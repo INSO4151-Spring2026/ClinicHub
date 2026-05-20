@@ -10,6 +10,7 @@ RBAC summary:
     (DELETE performs a soft-cancel by setting status='cancelled',
      preserving the record for audit / billing purposes.)
 """
+
 from flask import Blueprint, request, jsonify, g
 from app import db
 from app.models.appointment import Appointment, VALID_STATUSES
@@ -33,7 +34,39 @@ _ISO_FORMAT = "%Y-%m-%dT%H:%M:%S"
 _ISO_FORMAT_TZ = "%Y-%m-%dT%H:%M:%S%z"
 
 # Sort fields allowed on the list endpoint
-_VALID_SORT_FIELDS = {"appointment_id", "scheduled_start", "scheduled_end", "status", "created_at"}
+_VALID_SORT_FIELDS = {
+    "appointment_id",
+    "scheduled_start",
+    "scheduled_end",
+    "status",
+    "created_at",
+}
+
+
+def _appointment_with_cpt(appt: Appointment):
+    """Serialize an appointment, including CPT code details when available."""
+    data = appt.to_dict()
+
+    if not appt.cpt_id:
+        return data
+
+    cpt = db.session.get(CPT, appt.cpt_id)
+    if not cpt:
+        return data
+
+    data["cpt_code_id"] = cpt.cpt_code_id
+
+    cpt_code = db.session.get(CPTCode, cpt.cpt_code_id)
+    if not cpt_code:
+        return data
+
+    data["cpt_code"] = cpt_code.code
+    data["cpt_description"] = cpt_code.description
+    data["cpt_category"] = cpt_code.category
+    data["cpt_default_price"] = (
+        float(cpt_code.default_price) if cpt_code.default_price is not None else 0.0
+    )
+    return data
 
 
 def _parse_datetime(value: str):
@@ -55,12 +88,15 @@ def _parse_datetime(value: str):
     except ValueError:
         pass
     # Fallback: plain date-only strings are not allowed for scheduling
-    raise ValueError(f"Cannot parse datetime: {value!r}. Use ISO-8601, e.g. '2026-04-01T09:00:00'")
+    raise ValueError(
+        f"Cannot parse datetime: {value!r}. Use ISO-8601, e.g. '2026-04-01T09:00:00'"
+    )
 
 
 # ---------------------------------------------------------------------------
 # POST /api/appointments – Book a new appointment
 # ---------------------------------------------------------------------------
+
 
 @appointments.route("", methods=["POST"])
 @require_auth
@@ -75,8 +111,9 @@ def create_appointment():
       scheduled_start   (str)  – ISO-8601 datetime
       scheduled_end     (str)  – ISO-8601 datetime, must be after scheduled_start
 
-    Optional JSON fields:
-      cpt_id   (int)
+        Optional JSON fields:
+            cpt_id        (int) – link an existing CPT row (advanced)
+            cpt_code_id   (int) – preferred; will create a CPT row from this CPT code
       reason   (str, max 255)
       notes    (str)
       status   (str) – defaults to 'scheduled'
@@ -90,7 +127,12 @@ def create_appointment():
             return jsonify({"error": "Request body must be JSON"}), 400
 
         # --- Required fields ---
-        required = ["patient_id", "provider_user_id", "scheduled_start", "scheduled_end"]
+        required = [
+            "patient_id",
+            "provider_user_id",
+            "scheduled_start",
+            "scheduled_end",
+        ]
         for field in required:
             if data.get(field) is None:
                 return jsonify({"error": f"Missing required field: {field}"}), 400
@@ -103,12 +145,18 @@ def create_appointment():
             return jsonify({"error": str(exc)}), 400
 
         if scheduled_end <= scheduled_start:
-            return jsonify({"error": "scheduled_end must be after scheduled_start"}), 400
+            return jsonify(
+                {"error": "scheduled_end must be after scheduled_start"}
+            ), 400
 
         # --- Validate status if supplied ---
         status = data.get("status", "scheduled")
         if status not in VALID_STATUSES:
-            return jsonify({"error": f"Invalid status. Must be one of: {', '.join(VALID_STATUSES)}"}), 400
+            return jsonify(
+                {
+                    "error": f"Invalid status. Must be one of: {', '.join(VALID_STATUSES)}"
+                }
+            ), 400
 
         # --- Validate foreign keys ---
         if not db.session.get(Patient, data["patient_id"]):
@@ -125,16 +173,39 @@ def create_appointment():
             scheduled_end=scheduled_end,
         )
         if conflict:
-            return jsonify({
-                "error": "Provider already has an appointment during that time slot",
-                "conflict_appointment_id": conflict.appointment_id,
-            }), 409
+            return jsonify(
+                {
+                    "error": "Provider already has an appointment during that time slot",
+                    "conflict_appointment_id": conflict.appointment_id,
+                }
+            ), 409
+
+        # --- Optional CPT linkage ---
+        cpt_id = data.get("cpt_id")
+        cpt_code_id = data.get("cpt_code_id")
+        if cpt_code_id is not None:
+            cpt_code = db.session.get(CPTCode, int(cpt_code_id))
+            if not cpt_code or not cpt_code.is_active:
+                return jsonify({"error": "CPT code not found or inactive"}), 404
+
+            cpt = CPT(
+                patient_id=data["patient_id"],
+                cpt_code_id=cpt_code.cpt_code_id,
+                service_date=scheduled_start.date(),
+                status="draft",
+                quantity=1,
+                subtotal=cpt_code.default_price,
+                tax=0,
+            )
+            db.session.add(cpt)
+            db.session.flush()
+            cpt_id = cpt.cpt_id
 
         # --- Create appointment ---
         appt = Appointment(
             patient_id=data["patient_id"],
             provider_user_id=data["provider_user_id"],
-            cpt_id=data.get("cpt_id"),
+            cpt_id=cpt_id,
             scheduled_start=scheduled_start,
             scheduled_end=scheduled_end,
             status=status,
@@ -150,7 +221,12 @@ def create_appointment():
             g.current_user.user_id,
         )
 
-        return jsonify({"message": "Appointment created successfully", "appointment": appt.to_dict()}), 201
+        return jsonify(
+            {
+                "message": "Appointment created successfully",
+                "appointment": _appointment_with_cpt(appt),
+            }
+        ), 201
 
     except Exception as exc:
         db.session.rollback()
@@ -161,6 +237,7 @@ def create_appointment():
 # ---------------------------------------------------------------------------
 # GET /api/appointments – List appointments with pagination & filters
 # ---------------------------------------------------------------------------
+
 
 @appointments.route("", methods=["GET"])
 @require_auth
@@ -208,16 +285,24 @@ def list_appointments():
             query = query.filter(Appointment.provider_user_id == provider_user_id)
         if status_filter:
             if status_filter not in VALID_STATUSES:
-                return jsonify({"error": f"Invalid status filter. Must be one of: {', '.join(VALID_STATUSES)}"}), 400
+                return jsonify(
+                    {
+                        "error": f"Invalid status filter. Must be one of: {', '.join(VALID_STATUSES)}"
+                    }
+                ), 400
             query = query.filter(Appointment.status == status_filter)
         if date_from:
             try:
-                query = query.filter(Appointment.scheduled_start >= _parse_datetime(date_from))
+                query = query.filter(
+                    Appointment.scheduled_start >= _parse_datetime(date_from)
+                )
             except ValueError as exc:
                 return jsonify({"error": f"Invalid date_from: {exc}"}), 400
         if date_to:
             try:
-                query = query.filter(Appointment.scheduled_start < _parse_datetime(date_to))
+                query = query.filter(
+                    Appointment.scheduled_start < _parse_datetime(date_to)
+                )
             except ValueError as exc:
                 return jsonify({"error": f"Invalid date_to: {exc}"}), 400
 
@@ -225,21 +310,23 @@ def list_appointments():
         query = query.order_by(sort_col.desc() if order == "desc" else sort_col.asc())
 
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
-        items = [a.to_dict() for a in pagination.items]
+        items = [_appointment_with_cpt(a) for a in pagination.items]
 
         logger.info("Listed appointments – page %s, %s results", page, len(items))
 
-        return jsonify({
-            "appointments": items,
-            "pagination": {
-                "total": pagination.total,
-                "pages": pagination.pages,
-                "page": page,
-                "per_page": per_page,
-                "has_next": pagination.has_next,
-                "has_prev": pagination.has_prev,
-            },
-        }), 200
+        return jsonify(
+            {
+                "appointments": items,
+                "pagination": {
+                    "total": pagination.total,
+                    "pages": pagination.pages,
+                    "page": page,
+                    "per_page": per_page,
+                    "has_next": pagination.has_next,
+                    "has_prev": pagination.has_prev,
+                },
+            }
+        ), 200
 
     except Exception as exc:
         logger.error("Error listing appointments: %s", exc)
@@ -249,6 +336,7 @@ def list_appointments():
 # ---------------------------------------------------------------------------
 # GET /api/appointments/:id – Retrieve a single appointment
 # ---------------------------------------------------------------------------
+
 
 @appointments.route("/<int:appointment_id>", methods=["GET"])
 @require_auth
@@ -261,7 +349,7 @@ def get_appointment(appointment_id):
             return jsonify({"error": "Appointment not found"}), 404
 
         logger.info("Retrieved appointment %s", appointment_id)
-        return jsonify(appt.to_dict()), 200
+        return jsonify(_appointment_with_cpt(appt)), 200
 
     except Exception as exc:
         logger.error("Error retrieving appointment %s: %s", appointment_id, exc)
@@ -271,6 +359,7 @@ def get_appointment(appointment_id):
 # ---------------------------------------------------------------------------
 # PUT /api/appointments/:id – Modify an appointment
 # ---------------------------------------------------------------------------
+
 
 @appointments.route("/<int:appointment_id>", methods=["PUT"])
 @require_auth
@@ -286,6 +375,7 @@ def update_appointment(appointment_id):
       reason           (str)
       notes            (str)
       cpt_id           (int|null)
+    cpt_code_id      (int) – create/update the linked CPT from a CPT code
 
     Rescheduling (changing start/end) re-runs conflict detection,
     excluding the appointment itself so it does not conflict with its
@@ -306,7 +396,11 @@ def update_appointment(appointment_id):
         # --- Status validation ---
         if "status" in data:
             if data["status"] not in VALID_STATUSES:
-                return jsonify({"error": f"Invalid status. Must be one of: {', '.join(VALID_STATUSES)}"}), 400
+                return jsonify(
+                    {
+                        "error": f"Invalid status. Must be one of: {', '.join(VALID_STATUSES)}"
+                    }
+                ), 400
 
         # --- Determine effective start/end (may come from request or existing values) ---
         new_start = appt.scheduled_start
@@ -328,15 +422,19 @@ def update_appointment(appointment_id):
                 return jsonify({"error": str(exc)}), 400
 
         if new_end <= new_start:
-            return jsonify({"error": "scheduled_end must be after scheduled_start"}), 400
+            return jsonify(
+                {"error": "scheduled_end must be after scheduled_start"}
+            ), 400
 
         # --- Conflict detection when rescheduling ---
         if rescheduling:
             # Block rescheduling of appointments that are already done
             if appt.status in ("completed", "cancelled", "no_show"):
-                return jsonify({
-                    "error": f"Cannot reschedule an appointment with status '{appt.status}'"
-                }), 409
+                return jsonify(
+                    {
+                        "error": f"Cannot reschedule an appointment with status '{appt.status}'"
+                    }
+                ), 409
 
             conflict = Appointment.check_conflict(
                 provider_user_id=appt.provider_user_id,
@@ -345,10 +443,12 @@ def update_appointment(appointment_id):
                 exclude_id=appointment_id,
             )
             if conflict:
-                return jsonify({
-                    "error": "Provider already has an appointment during that time slot",
-                    "conflict_appointment_id": conflict.appointment_id,
-                }), 409
+                return jsonify(
+                    {
+                        "error": "Provider already has an appointment during that time slot",
+                        "conflict_appointment_id": conflict.appointment_id,
+                    }
+                ), 409
 
         # --- Apply updates ---
         appt.scheduled_start = new_start
@@ -357,11 +457,39 @@ def update_appointment(appointment_id):
         if "status" in data:
             appt.status = data["status"]
 
+        # --- Optional: link/update CPT by CPT code ---
+        if "cpt_code_id" in data and data["cpt_code_id"] is not None:
+            cpt_code = db.session.get(CPTCode, int(data["cpt_code_id"]))
+            if not cpt_code or not cpt_code.is_active:
+                return jsonify({"error": "CPT code not found or inactive"}), 404
+
+            if appt.cpt_id:
+                existing_cpt = db.session.get(CPT, appt.cpt_id)
+                if existing_cpt:
+                    existing_cpt.cpt_code_id = cpt_code.cpt_code_id
+                    existing_cpt.subtotal = cpt_code.default_price
+                    existing_cpt.tax = 0
+                else:
+                    appt.cpt_id = None
+
+            if not appt.cpt_id:
+                new_cpt = CPT(
+                    patient_id=appt.patient_id,
+                    cpt_code_id=cpt_code.cpt_code_id,
+                    service_date=appt.scheduled_start.date(),
+                    status="draft",
+                    quantity=1,
+                    subtotal=cpt_code.default_price,
+                    tax=0,
+                )
+                db.session.add(new_cpt)
+                db.session.flush()
+                appt.cpt_id = new_cpt.cpt_id
+
         db.session.flush()  # ensures status is persisted in transaction state
 
-        # 2. Only THEN trigger side effects
+        # Trigger side effects
         if appt.status == "completed" and not appt.cpt_id:
-
             default_cpt_code = CPTCode.query.filter_by(code="99213").first()
 
             if not default_cpt_code:
@@ -374,7 +502,7 @@ def update_appointment(appointment_id):
                 status="draft",
                 quantity=1,
                 subtotal=default_cpt_code.default_price,
-                tax=0
+                tax=0,
             )
 
             db.session.add(cpt)
@@ -396,7 +524,12 @@ def update_appointment(appointment_id):
             g.current_user.user_id,
         )
 
-        return jsonify({"message": "Appointment updated successfully", "appointment": appt.to_dict()}), 200
+        return jsonify(
+            {
+                "message": "Appointment updated successfully",
+                "appointment": _appointment_with_cpt(appt),
+            }
+        ), 200
 
     except Exception as exc:
         db.session.rollback()
@@ -407,6 +540,7 @@ def update_appointment(appointment_id):
 # ---------------------------------------------------------------------------
 # DELETE /api/appointments/:id – Cancel an appointment (soft delete)
 # ---------------------------------------------------------------------------
+
 
 @appointments.route("/<int:appointment_id>", methods=["DELETE"])
 @require_auth
@@ -440,7 +574,12 @@ def cancel_appointment(appointment_id):
             g.current_user.user_id,
         )
 
-        return jsonify({"message": "Appointment cancelled successfully", "appointment_id": appointment_id}), 200
+        return jsonify(
+            {
+                "message": "Appointment cancelled successfully",
+                "appointment_id": appointment_id,
+            }
+        ), 200
 
     except Exception as exc:
         db.session.rollback()
