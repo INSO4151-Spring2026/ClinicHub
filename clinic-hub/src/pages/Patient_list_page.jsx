@@ -1,12 +1,6 @@
-import { useState, useEffect } from "react";
-import {
-  Search,
-  UserPlus,
-  Trash2,
-  ChevronRight,
-  ChevronLeft,
-} from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from 'react'
+import { Search, UserPlus, Trash2, ChevronRight, ChevronLeft, Activity, ClipboardList } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 
 const PER_PAGE = 10;
 
@@ -20,8 +14,14 @@ const Patient_list = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const navigate = useNavigate();
 
+  const role = (
+    localStorage.getItem('userRole') ||
+    localStorage.getItem('role') ||
+    ''
+  ).toLowerCase()
+  const canRecordVitals = ['admin', 'doctor'].includes(role)
+
   // Debounce: update debouncedSearch AND reset to page 1 in the same batch
-  // so the fetch effect only fires once with the correct page
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebounced(searchTerm);
@@ -173,7 +173,7 @@ const Patient_list = () => {
           {loading ? (
             <div className="loading-state" role="status" aria-live="polite">
               <span className="loading-spinner" aria-hidden="true" />
-              Loading patients…
+              Loading Patients…
             </div>
           ) : (
             <>
@@ -216,25 +216,26 @@ const Patient_list = () => {
                             {patient.phone || "—"}
                           </td>
                           <td>
-                            <div
-                              style={{
-                                display: "flex",
-                                justifyContent: "flex-end",
-                                gap: "var(--space-2)",
-                              }}
-                            >
-                              <Link
-                                to={`/records/${patient.patient_id}`}
-                                tabIndex={-1}
-                              >
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)' }}>
+                              {canRecordVitals && (
                                 <button
                                   className="btn btn-sm btn-outline"
-                                  aria-label={`View record for ${patient.first_name} ${patient.last_name}`}
+                                  onClick={() => navigate(`/vitals/${patient.patient_id}`)}
+                                  aria-label={`Record vitals for ${patient.first_name} ${patient.last_name}`}
                                 >
-                                  View{" "}
-                                  <ChevronRight size={13} aria-hidden="true" />
+                                  <Activity size={13} aria-hidden="true" /> Vitals
+                                </button>
+                              )}
+
+                              <Link to={`/records/${patient.patient_id}`} tabIndex={-1}>
+                                <button
+                                  className="btn btn-sm btn-outline"
+                                  aria-label={`View visit records for ${patient.first_name} ${patient.last_name}`}
+                                >
+                                  <ClipboardList size={13} aria-hidden="true" /> Visit Records
                                 </button>
                               </Link>
+
                               <button
                                 className="btn btn-sm btn-danger"
                                 onClick={() => handleDelete(patient.patient_id)}

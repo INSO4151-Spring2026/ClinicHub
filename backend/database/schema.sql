@@ -287,6 +287,36 @@ CREATE INDEX idx_medrec_appointment_id ON medical_records (appointment_id);
 CREATE INDEX idx_medrec_record_date ON medical_records (record_date);
 
 -- =============================================================================
+-- PATIENT_VITALS
+-- Physical measurements recorded per visit; optionally linked to an appointment
+-- =============================================================================
+CREATE TABLE patient_vitals (
+    vital_id SERIAL PRIMARY KEY,
+    patient_id INT NOT NULL REFERENCES patients (patient_id) ON DELETE CASCADE,
+    appointment_id INT REFERENCES appointments (appointment_id) ON DELETE SET NULL,
+    recorded_by_user_id INT REFERENCES users (user_id) ON DELETE SET NULL,
+    recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    height_m DECIMAL(5, 2),
+    weight_kg DECIMAL(5, 2),
+    bmi DECIMAL(5, 2),
+    bmi_category VARCHAR(20),
+    blood_pressure VARCHAR(20),
+    temperature_c DECIMAL(4, 1),
+    pulse_bpm INT,
+    respiratory_rate INT,
+    o2_saturation DECIMAL(4, 1),
+    pain_level SMALLINT CHECK (pain_level BETWEEN 0 AND 10),
+    head_circumference_cm DECIMAL(5, 1),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_vitals_patient_id ON patient_vitals (patient_id);
+
+CREATE INDEX idx_vitals_appointment_id ON patient_vitals (appointment_id);
+
+CREATE INDEX idx_vitals_recorded_at ON patient_vitals (recorded_at);
+
+-- =============================================================================
 -- AUDIT LOG
 -- HIPAA-awareness: records every read/write on sensitive tables
 -- =============================================================================

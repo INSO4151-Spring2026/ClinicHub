@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { Activity, AlertCircle } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { Activity, AlertCircle, ArrowLeft } from 'lucide-react'
 
 const BMI_CONFIG = {
   Underweight: { badge: 'badge-yellow', range: '< 18.5' },
@@ -11,18 +11,23 @@ const BMI_CONFIG = {
 
 function Vitals_page() {
   const navigate = useNavigate()
+  const { patient_id } = useParams()
 
-  const [height, setHeight]                   = useState('')
-  const [weight, setWeight]                   = useState('')
-  const [bp, setBp]                           = useState('')
-  const [temperature, setTemperature]         = useState('')
-  const [pulse, setPulse]                     = useState('')
-  const [respiratory_rate, setRespiratoryRate]= useState('')
-  const [o2_saturation, setO2Saturation]      = useState('')
-  const [pain_level, setPainLevel]            = useState('0')
-  const [head_circumference, setHeadCirc]     = useState('')
-  const [loading, setLoading]                 = useState(false)
-  const [error, setError]                     = useState('')
+  const [patientName, setPatientName] = useState('')
+  const [height, setHeight]                    = useState('')
+  const [weight, setWeight]                    = useState('')
+  const [bp, setBp]                            = useState('')
+  const [temperature, setTemperature]          = useState('')
+  const [pulse, setPulse]                      = useState('')
+  const [respiratory_rate, setRespiratoryRate] = useState('')
+  const [o2_saturation, setO2Saturation]       = useState('')
+  const [pain_level, setPainLevel]             = useState('0')
+  const [head_circumference, setHeadCirc]      = useState('')
+  const [loading, setLoading]                  = useState(false)
+  const [error, setError]                      = useState('')
+  const [success, setSuccess]                  = useState(false)
+
+  const token = localStorage.getItem('token')
 
   const h = parseFloat(height)
   const w = parseFloat(weight)
@@ -31,18 +36,40 @@ function Vitals_page() {
     ? bmi < 18.5 ? 'Underweight' : bmi < 25 ? 'Normal' : bmi < 30 ? 'Overweight' : 'Obese'
     : ''
 
+  // Load patient name for display
+  useEffect(() => {
+    if (!patient_id) return
+    if (!token) { navigate('/login'); return }
+
+    fetch(`http://localhost:5000/api/patients/${patient_id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) setPatientName(`${data.first_name} ${data.last_name}`)
+      })
+      .catch(() => {})
+  }, [patient_id, token, navigate])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    setSuccess(false)
     setLoading(true)
 
-    const vitals = {
+    if (!token) { navigate('/login'); return }
+    if (!patient_id) {
+      setError('No patient selected. Return to the patient list and try again.')
+      setLoading(false)
+      return
+    }
+
+    const payload = {
+      patient_id: Number(patient_id),
       height, weight, bmi, bmi_category,
       bp, temperature, pulse, respiratory_rate,
       o2_saturation, pain_level, head_circumference,
     }
-
-    const token = localStorage.getItem('token')
 
     try {
       const response = await fetch('http://localhost:5000/api/vitals', {
@@ -51,17 +78,25 @@ function Vitals_page() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(vitals),
+        body: JSON.stringify(payload),
       })
 
+      if (response.status === 401) { navigate('/login'); return }
+      if (response.status === 403) {
+        setError('Access denied: only Doctors and Admins can record vitals.')
+        return
+      }
+
+      const data = await response.json()
+
       if (response.ok) {
-        navigate('/')
-      } else if (response.status === 401) {
-        setError('You are not logged in. Please sign in first.')
-      } else if (response.status === 403) {
-        setError('Access denied: only Doctors can save vitals.')
+        setSuccess(true)
+        // Reset measurements
+        setHeight(''); setWeight(''); setBp(''); setTemperature('')
+        setPulse(''); setRespiratoryRate(''); setO2Saturation('')
+        setPainLevel('0'); setHeadCirc('')
       } else {
-        setError('Could not save vitals. Please try again.')
+        setError(data?.error || 'Could not save vitals. Please try again.')
       }
     } catch {
       setError('Connection failed. Check if the server is running.')
@@ -82,15 +117,36 @@ function Vitals_page() {
   return (
     <main className="page-wrapper">
       <div className="page-container-sm">
+        {/* Back */}
+        <div style={{ marginBottom: 'var(--space-5)' }}>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => navigate('/patients')}
+            aria-label="Back to patient list"
+          >
+            <ArrowLeft size={15} aria-hidden="true" /> Back to Patient List
+          </button>
+        </div>
+
         <div className="page-header">
           <h1 className="page-title">Patient Vitals</h1>
-          <p className="page-subtitle">Record the patient's current physical measurements and vital signs.</p>
+          <p className="page-subtitle">
+            {patientName
+              ? `Recording vitals for ${patientName}`
+              : 'Record the patient\'s current physical measurements and vital signs.'}
+          </p>
         </div>
 
         {error && (
           <div className="alert alert-error" style={{ marginBottom: 'var(--space-5)' }} role="alert">
             <AlertCircle size={15} aria-hidden="true" />
             <span>{error}</span>
+          </div>
+        )}
+
+        {success && (
+          <div className="alert alert-success" style={{ marginBottom: 'var(--space-5)' }} role="status" aria-live="polite">
+            Vitals recorded successfully.
           </div>
         )}
 
@@ -134,7 +190,10 @@ function Vitals_page() {
                       style={{ flex: 1 }}
                     />
                     {bmi_category && (
-                      <span className={`badge ${BMI_CONFIG[bmi_category]?.badge}`} aria-label={`BMI category: ${bmi_category}`}>
+                      <span
+                        className={`badge ${BMI_CONFIG[bmi_category]?.badge}`}
+                        aria-label={`BMI category: ${bmi_category}`}
+                      >
                         {bmi_category}
                       </span>
                     )}
@@ -144,12 +203,11 @@ function Vitals_page() {
                   )}
                 </div>
 
-                <Field id="head_circumference" label="Head Circumference (cm)" required>
+                <Field id="head_circumference" label="Head Circumference (cm)">
                   <input
                     type="number" id="head_circumference" step="0.1"
                     className="form-input" value={head_circumference}
                     onChange={(e) => setHeadCirc(e.target.value)}
-                    required aria-required="true"
                     placeholder="e.g. 56"
                   />
                 </Field>
@@ -220,7 +278,7 @@ function Vitals_page() {
                     Pain Level (0–10) <span className="required" aria-hidden="true">*</span>
                   </label>
                   <input
-                    type="number" id="pain_level"
+                    type="number" id="pain_level" min="0" max="10"
                     className="form-input" value={pain_level}
                     onChange={(e) => setPainLevel(e.target.value)}
                     placeholder="0"
@@ -253,9 +311,13 @@ function Vitals_page() {
               )}
             </button>
 
-            <Link to="/" tabIndex={-1}>
-              <button type="button" className="btn btn-secondary btn-full">← Back to Dashboard</button>
-            </Link>
+            <button
+              type="button"
+              className="btn btn-secondary btn-full"
+              onClick={() => navigate(`/records/${patient_id}`)}
+            >
+              View Patient Record
+            </button>
           </div>
         </form>
       </div>

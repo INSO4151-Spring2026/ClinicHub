@@ -413,6 +413,110 @@ router.delete(
     }
   },
 );
+// --- MEDICAL RECORDS ---
+router.post(
+  "/medical-records",
+  authorize([ROLES.DOCTOR, ROLES.ADMIN]),
+  async (req, res) => {
+    try {
+      const response = await fetch(`${FLASK_BASE}/api/medical-records`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: req.headers.authorization,
+        },
+        body: JSON.stringify(req.body),
+      });
+      const text = await response.text();
+      let data;
+      try { data = JSON.parse(text); } catch { data = { message: text }; }
+      return res.status(response.status).json(data);
+    } catch (err) {
+      return res.status(502).json({ message: "Flask service unreachable" });
+    }
+  },
+);
+
+router.get(
+  "/medical-records",
+  authorize([ROLES.DOCTOR, ROLES.ADMIN, ROLES.RECEPTIONIST]),
+  async (req, res) => {
+    try {
+      const params = new URLSearchParams(req.query);
+      const response = await fetch(`${FLASK_BASE}/api/medical-records?${params}`, {
+        headers: { Authorization: req.headers.authorization },
+      });
+      const text = await response.text();
+      let data;
+      try { data = JSON.parse(text); } catch { data = { message: text }; }
+      return res.status(response.status).json(data);
+    } catch (err) {
+      return res.status(502).json({ message: "Flask service unreachable" });
+    }
+  },
+);
+
+router.get(
+  "/medical-records/:id",
+  authorize([ROLES.DOCTOR, ROLES.ADMIN, ROLES.RECEPTIONIST]),
+  async (req, res) => {
+    try {
+      const response = await fetch(`${FLASK_BASE}/api/medical-records/${req.params.id}`, {
+        headers: { Authorization: req.headers.authorization },
+      });
+      const text = await response.text();
+      let data;
+      try { data = JSON.parse(text); } catch { data = { message: text }; }
+      return res.status(response.status).json(data);
+    } catch (err) {
+      return res.status(502).json({ message: "Flask service unreachable" });
+    }
+  },
+);
+
+router.put(
+  "/medical-records/:id",
+  authorize([ROLES.DOCTOR, ROLES.ADMIN]),
+  async (req, res) => {
+    try {
+      const response = await fetch(`${FLASK_BASE}/api/medical-records/${req.params.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: req.headers.authorization,
+        },
+        body: JSON.stringify(req.body),
+      });
+      const text = await response.text();
+      let data;
+      try { data = JSON.parse(text); } catch { data = { message: text }; }
+      return res.status(response.status).json(data);
+    } catch (err) {
+      return res.status(502).json({ message: "Flask service unreachable" });
+    }
+  },
+);
+
+// --- GET VITALS (POST already existed) ---
+router.get(
+  "/vitals",
+  authorize([ROLES.DOCTOR, ROLES.ADMIN, ROLES.RECEPTIONIST]),
+  async (req, res) => {
+    try {
+      const params = new URLSearchParams(req.query);
+      const response = await fetch(`${FLASK_BASE}/api/vitals?${params}`, {
+        headers: { Authorization: req.headers.authorization },
+      });
+      const text = await response.text();
+      let data;
+      try { data = JSON.parse(text); } catch { data = { message: text }; }
+      return res.status(response.status).json(data);
+    } catch (err) {
+      return res.status(502).json({ message: "Flask service unreachable" });
+    }
+  },
+);
+
 // --- 7. LOGIN ---
 router.post("/login", async (req, res) => {
   try {
