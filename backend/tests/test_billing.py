@@ -8,6 +8,7 @@ Covers:
   - GET    /api/invoices           (invoice listing)
   - GET    /api/reports/daily-revenue  (revenue report accuracy)
 """
+
 import pytest
 from datetime import date, datetime, timezone
 
@@ -15,12 +16,14 @@ from app import db
 from app.models.appointment import Appointment
 from app.models.cpt import CPT
 from app.models.cpt_code import CPTCode
+from app.models.insurance_plan import InsurancePlan
 from app.models.invoice import Invoice
 
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def cpt_code(app):
@@ -51,6 +54,23 @@ def revenue_cpt_code(app):
 
 
 @pytest.fixture
+def active_insurance_plan(app, sample_patient):
+    """Active insurance profile required for billing (copay-based breakdown)."""
+    plan = InsurancePlan(
+        patient_id=sample_patient.patient_id,
+        carrier_name="Aetna",
+        member_id="MEM123",
+        group_id="GRP1",
+        plan_type="PPO",
+        copay=25.00,
+        is_active=True,
+    )
+    db.session.add(plan)
+    db.session.commit()
+    return plan
+
+
+@pytest.fixture
 def cpt_record(app, sample_patient, cpt_code):
     """A paid CPT billing record linked to sample_patient."""
     record = CPT(
@@ -67,7 +87,9 @@ def cpt_record(app, sample_patient, cpt_code):
 
 
 @pytest.fixture
-def completed_appointment(app, sample_patient, doctor_user, cpt_record):
+def completed_appointment(
+    app, sample_patient, doctor_user, cpt_record, active_insurance_plan
+):
     """A completed appointment with an associated CPT record — required for invoice creation."""
     appt = Appointment(
         patient_id=sample_patient.patient_id,
@@ -100,7 +122,54 @@ def sample_invoice(app, completed_appointment, cpt_record, sample_patient):
 # Invoice Generation Tests  (POST /api/invoices)
 # ---------------------------------------------------------------------------
 
+
 class TestInvoiceGeneration:
+    def test_create_invoice_requires_active_insurance_profile(
+        self, client, auth_headers, doctor_user, cpt_code
+    ):
+        """Billing requires an active insurance profile; otherwise invoice creation returns 400."""
+        from app.models.patient import Patient
+
+        patient = Patient(
+            first_name="No",
+            last_name="Insurance",
+            dob=date(1991, 1, 1),
+            sex="female",
+            email="no.insurance@test.com",
+        )
+        db.session.add(patient)
+        db.session.commit()
+
+        record = CPT(
+            patient_id=patient.patient_id,
+            cpt_code_id=cpt_code.cpt_code_id,
+            service_date=date(2026, 6, 1),
+            status="paid",
+            subtotal=150.00,
+            tax=15.00,
+        )
+        db.session.add(record)
+        db.session.commit()
+
+        appt = Appointment(
+            patient_id=patient.patient_id,
+            provider_user_id=doctor_user.user_id,
+            scheduled_start=datetime(2026, 6, 1, 9, 0, tzinfo=timezone.utc),
+            scheduled_end=datetime(2026, 6, 1, 9, 30, tzinfo=timezone.utc),
+            status="completed",
+            reason="Annual check-up",
+            cpt_id=record.cpt_id,
+        )
+        db.session.add(appt)
+        db.session.commit()
+
+        resp = client.post(
+            "/api/invoices",
+            json={"appointment_id": appt.appointment_id},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 400
+        assert "insurance" in resp.get_json()["error"].lower()
 
     def test_create_invoice_success(self, client, auth_headers, completed_appointment):
         """Admin can create an invoice for a completed appointment that has a CPT."""
@@ -154,7 +223,9 @@ class TestInvoiceGeneration:
         assert resp.status_code == 400
         assert "error" in resp.get_json()
 
-    def test_create_invoice_missing_appointment_id_returns_400(self, client, auth_headers):
+    def test_create_invoice_missing_appointment_id_returns_400(
+        self, client, auth_headers
+    ):
         """Request body with keys but no appointment_id returns 400."""
         # A non-empty dict avoids the `not data` guard and reaches the appointment_id check.
         resp = client.post(
@@ -165,7 +236,9 @@ class TestInvoiceGeneration:
         assert resp.status_code == 400
         assert "appointment_id" in resp.get_json()["error"].lower()
 
-    def test_create_invoice_appointment_not_found_returns_404(self, client, auth_headers):
+    def test_create_invoice_appointment_not_found_returns_404(
+        self, client, auth_headers
+    ):
         """Non-existent appointment_id returns 404."""
         resp = client.post(
             "/api/invoices",
@@ -221,7 +294,9 @@ class TestInvoiceGeneration:
         assert resp.status_code == 409
         assert "already exists" in resp.get_json()["error"].lower()
 
-    def test_create_invoice_unauthenticated_returns_401(self, client, completed_appointment):
+    def test_create_invoice_unauthenticated_returns_401(
+        self, client, completed_appointment
+    ):
         """Request without auth token returns 401."""
         resp = client.post(
             "/api/invoices",
@@ -262,7 +337,9 @@ class TestInvoiceGeneration:
         )
         assert resp.status_code == 201
 
-    def test_list_invoices_returns_seeded_invoice(self, client, auth_headers, sample_invoice):
+    def test_list_invoices_returns_seeded_invoice(
+        self, client, auth_headers, sample_invoice
+    ):
         """GET /api/invoices returns a list that includes the seeded invoice."""
         resp = client.get("/api/invoices", headers=auth_headers)
         assert resp.status_code == 200
@@ -319,8 +396,8 @@ class TestInvoiceGeneration:
 # Payment Status Update Tests  (PUT /api/invoices/<id>)
 # ---------------------------------------------------------------------------
 
-class TestPaymentStatusUpdates:
 
+class TestPaymentStatusUpdates:
     def test_mark_invoice_paid_returns_200(self, client, auth_headers, sample_invoice):
         """Updating status to 'paid' returns 200 with the updated invoice."""
         resp = client.put(
@@ -345,7 +422,9 @@ class TestPaymentStatusUpdates:
         parsed = datetime.fromisoformat(paid_at_str)
         assert isinstance(parsed, datetime)
 
-    def test_mark_invoice_unpaid_clears_paid_at(self, client, auth_headers, sample_invoice):
+    def test_mark_invoice_unpaid_clears_paid_at(
+        self, client, auth_headers, sample_invoice
+    ):
         """Reverting a paid invoice to 'unpaid' clears paid_at back to None."""
         client.put(
             f"/api/invoices/{sample_invoice.invoice_id}",
@@ -372,8 +451,15 @@ class TestPaymentStatusUpdates:
             headers=auth_headers,
         )
         inv = resp.get_json()["invoice"]
-        for field in ("invoice_id", "appointment_id", "cpt_id", "patient_id",
-                      "status", "issued_at", "paid_at"):
+        for field in (
+            "invoice_id",
+            "appointment_id",
+            "cpt_id",
+            "patient_id",
+            "status",
+            "issued_at",
+            "paid_at",
+        ):
             assert field in inv, f"Missing field in response: '{field}'"
 
     def test_update_invoice_invalid_status_returns_400(
@@ -476,7 +562,9 @@ class TestPaymentStatusUpdates:
         assert resp.status_code == 200
         assert resp.get_json()["invoice"]["status"] == "paid"
 
-    def test_status_persisted_in_database(self, client, auth_headers, sample_invoice, app):
+    def test_status_persisted_in_database(
+        self, client, auth_headers, sample_invoice, app
+    ):
         """After marking as paid, the DB record reflects the updated status."""
         client.put(
             f"/api/invoices/{sample_invoice.invoice_id}",
@@ -492,6 +580,7 @@ class TestPaymentStatusUpdates:
 # ---------------------------------------------------------------------------
 # Revenue Report Accuracy Tests  (GET /api/reports/daily-revenue)
 # ---------------------------------------------------------------------------
+
 
 class TestRevenueReportAccuracy:
     """
@@ -574,8 +663,12 @@ class TestRevenueReportAccuracy:
     ):
         """Draft CPT records do not contribute to revenue totals."""
         self._seed(
-            sample_patient.patient_id, revenue_cpt_code.cpt_code_id,
-            self.REPORT_DATE_OBJ, "draft", 500.00, 50.00
+            sample_patient.patient_id,
+            revenue_cpt_code.cpt_code_id,
+            self.REPORT_DATE_OBJ,
+            "draft",
+            500.00,
+            50.00,
         )
         resp = client.get(
             f"/api/reports/daily-revenue?date={self.REPORT_DATE}", headers=auth_headers
@@ -589,8 +682,12 @@ class TestRevenueReportAccuracy:
     ):
         """Submitted CPT records do not contribute to revenue totals."""
         self._seed(
-            sample_patient.patient_id, revenue_cpt_code.cpt_code_id,
-            self.REPORT_DATE_OBJ, "submitted", 300.00, 30.00
+            sample_patient.patient_id,
+            revenue_cpt_code.cpt_code_id,
+            self.REPORT_DATE_OBJ,
+            "submitted",
+            300.00,
+            30.00,
         )
         resp = client.get(
             f"/api/reports/daily-revenue?date={self.REPORT_DATE}", headers=auth_headers
@@ -602,8 +699,12 @@ class TestRevenueReportAccuracy:
     ):
         """Overdue CPT records do not contribute to revenue totals."""
         self._seed(
-            sample_patient.patient_id, revenue_cpt_code.cpt_code_id,
-            self.REPORT_DATE_OBJ, "overdue", 400.00, 40.00
+            sample_patient.patient_id,
+            revenue_cpt_code.cpt_code_id,
+            self.REPORT_DATE_OBJ,
+            "overdue",
+            400.00,
+            40.00,
         )
         resp = client.get(
             f"/api/reports/daily-revenue?date={self.REPORT_DATE}", headers=auth_headers
@@ -615,8 +716,12 @@ class TestRevenueReportAccuracy:
     ):
         """Cancelled CPT records do not contribute to revenue totals."""
         self._seed(
-            sample_patient.patient_id, revenue_cpt_code.cpt_code_id,
-            self.REPORT_DATE_OBJ, "cancelled", 250.00, 25.00
+            sample_patient.patient_id,
+            revenue_cpt_code.cpt_code_id,
+            self.REPORT_DATE_OBJ,
+            "cancelled",
+            250.00,
+            25.00,
         )
         resp = client.get(
             f"/api/reports/daily-revenue?date={self.REPORT_DATE}", headers=auth_headers
@@ -629,10 +734,10 @@ class TestRevenueReportAccuracy:
         """With a mix of statuses, only 'paid' records appear in the revenue total."""
         pid = sample_patient.patient_id
         cid = revenue_cpt_code.cpt_code_id
-        self._seed(pid, cid, self.REPORT_DATE_OBJ, "paid",      100.00, 10.00)
-        self._seed(pid, cid, self.REPORT_DATE_OBJ, "draft",     999.00, 99.00)
+        self._seed(pid, cid, self.REPORT_DATE_OBJ, "paid", 100.00, 10.00)
+        self._seed(pid, cid, self.REPORT_DATE_OBJ, "draft", 999.00, 99.00)
         self._seed(pid, cid, self.REPORT_DATE_OBJ, "submitted", 888.00, 88.00)
-        self._seed(pid, cid, self.REPORT_DATE_OBJ, "overdue",   777.00, 77.00)
+        self._seed(pid, cid, self.REPORT_DATE_OBJ, "overdue", 777.00, 77.00)
         self._seed(pid, cid, self.REPORT_DATE_OBJ, "cancelled", 666.00, 66.00)
 
         resp = client.get(
@@ -666,7 +771,9 @@ class TestRevenueReportAccuracy:
 
     def test_empty_day_returns_zero_totals(self, client, auth_headers):
         """A date with no CPT records returns zeros for all revenue fields."""
-        resp = client.get("/api/reports/daily-revenue?date=2000-01-01", headers=auth_headers)
+        resp = client.get(
+            "/api/reports/daily-revenue?date=2000-01-01", headers=auth_headers
+        )
         assert resp.status_code == 200
         body = resp.get_json()
         assert body["transaction_count"] == 0
@@ -678,7 +785,9 @@ class TestRevenueReportAccuracy:
 
     def test_response_structure_always_present(self, client, auth_headers):
         """Response always includes date, transaction_count, and data with all sub-fields."""
-        resp = client.get("/api/reports/daily-revenue?date=2000-01-01", headers=auth_headers)
+        resp = client.get(
+            "/api/reports/daily-revenue?date=2000-01-01", headers=auth_headers
+        )
         body = resp.get_json()
         assert "date" in body
         assert "transaction_count" in body

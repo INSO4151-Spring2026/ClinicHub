@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import MedicalRecordForm from "./MedicalRecordForm";
 import PatientVisitHistory from "./PatientVisitHistory";
+import { Mars, Venus, VenusAndMars } from "lucide-react";
 
 const Records_page = () => {
   const { id } = useParams();
@@ -95,12 +96,55 @@ const Records_page = () => {
   };
 
   const FIELDS = [
-    { key: "first_name", label: "First Name",     icon: <User size={13} />,     autoComplete: "given-name" },
-    { key: "last_name",  label: "Last Name",      icon: <User size={13} />,     autoComplete: "family-name" },
-    { key: "email",      label: "Email Address",  icon: <Mail size={13} />,     type: "email", autoComplete: "email" },
-    { key: "phone",      label: "Phone Number",   icon: <Phone size={13} />,    type: "tel",   autoComplete: "tel" },
-    { key: "dob",        label: "Date of Birth",  icon: <Calendar size={13} />, type: "date" },
-    { key: "blood_type", label: "Blood Type",     icon: <Droplets size={13} /> },
+    {
+      key: "first_name",
+      label: "First Name",
+      icon: <User size={13} />,
+      autoComplete: "given-name",
+    },
+    {
+      key: "last_name",
+      label: "Last Name",
+      icon: <User size={13} />,
+      autoComplete: "family-name",
+    },
+    {
+      key: "email",
+      label: "Email Address",
+      icon: <Mail size={13} />,
+      type: "email",
+      autoComplete: "email",
+    },
+    {
+      key: "phone",
+      label: "Phone Number",
+      icon: <Phone size={13} />,
+      type: "tel",
+      autoComplete: "tel",
+    },
+    {
+      key: "dob",
+      label: "Date of Birth",
+      icon: <Calendar size={13} />,
+      type: "date",
+    },
+    {
+      key: "sex",
+      label: "Sex",
+      icon: <VenusAndMars size={13} />,
+    },
+    {
+      key: "emergency_contact_name",
+      label: "Emergency Contact Name",
+      icon: <User size={13} />,
+    },
+    {
+      key: "emergency_contact_phone",
+      label: "Emergency Contact Phone",
+      icon: <Phone size={13} />,
+      type: "tel",
+      autoComplete: "tel",
+    },
   ];
 
   /* ── Loading ── */

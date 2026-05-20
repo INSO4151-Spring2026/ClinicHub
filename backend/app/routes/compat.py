@@ -23,7 +23,7 @@ def admin_stats():
 
 @compat.route("/patient/<int:patient_id>/records", methods=["GET"])
 @require_auth
-@require_role("admin", "doctor")
+@require_role("admin", "doctor", "nurse")
 def patient_records(patient_id: int):
     return jsonify(
         {
