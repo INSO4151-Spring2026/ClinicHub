@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ClipboardPlus, AlertCircle, CheckCircle } from "lucide-react";
 
-function MedicalRecordForm({ patientId, patientName, appointmentId, providerName }) {
+function MedicalRecordForm({ patientId, patientName, appointmentId }) {
   const navigate = useNavigate();
 
   const [fields, setFields] = useState({
@@ -149,16 +149,6 @@ function MedicalRecordForm({ patientId, patientName, appointmentId, providerName
               />
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Provider</label>
-              <input
-                className="form-input"
-                type="text"
-                value={providerName ?? ""}
-                readOnly
-                aria-readonly="true"
-              />
-            </div>
           </div>
 
           <div className="form-group">
