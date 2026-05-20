@@ -515,7 +515,7 @@ const Home = ({ role }) => {
                 </li>
                 <li>
                   <a
-                    href="https://docs.google.com/presentation/d/1TNwHPC-MJQhr0_7EmuwF5Nmo5wLwMsUa6BiyKVINPis/edit?usp=sharing"
+                    href="https://docs.google.com/presentation/d/1k-PwZRnqmXijPgwYL_9-gqrwhwP82R9O2RbIkXsylys/edit?usp=sharing"
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{
