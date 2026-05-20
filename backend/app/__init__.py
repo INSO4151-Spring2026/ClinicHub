@@ -57,6 +57,8 @@ def create_app(config_name="development"):
     from app.routes.invoice_routes import invoices
     from app.routes.cpt_codes import cpt_codes
     from app.routes.compat import compat
+    from app.routes.medical_records import medical_records
+    from app.routes.vitals import vitals
 
     app.register_blueprint(main)
     app.register_blueprint(patients)
@@ -66,6 +68,8 @@ def create_app(config_name="development"):
     app.register_blueprint(invoices)
     app.register_blueprint(cpt_codes)
     app.register_blueprint(compat)
+    app.register_blueprint(medical_records)
+    app.register_blueprint(vitals)
 
     # -------------------------------------------------------------------------
     # Basic error handlers

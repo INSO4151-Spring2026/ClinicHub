@@ -11,7 +11,11 @@ import {
   Calendar,
   Droplets,
   AlertCircle,
+  ClipboardPlus,
+  Activity,
 } from "lucide-react";
+import MedicalRecordForm from "./MedicalRecordForm";
+import PatientVisitHistory from "./PatientVisitHistory";
 
 const Records_page = () => {
   const { id } = useParams();
@@ -22,6 +26,14 @@ const Records_page = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [showRecordForm, setShowRecordForm] = useState(false);
+
+  const role = (
+    localStorage.getItem("userRole") ||
+    localStorage.getItem("role") ||
+    ""
+  ).toLowerCase();
+  const canCreateRecord = ["admin", "doctor"].includes(role);
 
   useEffect(() => {
     const fetchPatient = async () => {
@@ -29,9 +41,7 @@ const Records_page = () => {
       try {
         const response = await fetch(
           `http://localhost:5000/api/patients/${id}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
+          { headers: { Authorization: `Bearer ${token}` } },
         );
         if (response.ok) {
           setPatient(await response.json());
@@ -77,7 +87,7 @@ const Records_page = () => {
       } else {
         setError(data.message || "Failed to update patient record.");
       }
-    } catch (err) {
+    } catch {
       setError("Server connection error. Please try again.");
     } finally {
       setSaving(false);
@@ -85,39 +95,12 @@ const Records_page = () => {
   };
 
   const FIELDS = [
-    {
-      key: "first_name",
-      label: "First Name",
-      icon: <User size={13} />,
-      autoComplete: "given-name",
-    },
-    {
-      key: "last_name",
-      label: "Last Name",
-      icon: <User size={13} />,
-      autoComplete: "family-name",
-    },
-    {
-      key: "email",
-      label: "Email Address",
-      icon: <Mail size={13} />,
-      type: "email",
-      autoComplete: "email",
-    },
-    {
-      key: "phone",
-      label: "Phone Number",
-      icon: <Phone size={13} />,
-      type: "tel",
-      autoComplete: "tel",
-    },
-    {
-      key: "dob",
-      label: "Date of Birth",
-      icon: <Calendar size={13} />,
-      type: "date",
-    },
-    { key: "blood_type", label: "Blood Type", icon: <Droplets size={13} /> },
+    { key: "first_name", label: "First Name",     icon: <User size={13} />,     autoComplete: "given-name" },
+    { key: "last_name",  label: "Last Name",      icon: <User size={13} />,     autoComplete: "family-name" },
+    { key: "email",      label: "Email Address",  icon: <Mail size={13} />,     type: "email", autoComplete: "email" },
+    { key: "phone",      label: "Phone Number",   icon: <Phone size={13} />,    type: "tel",   autoComplete: "tel" },
+    { key: "dob",        label: "Date of Birth",  icon: <Calendar size={13} />, type: "date" },
+    { key: "blood_type", label: "Blood Type",     icon: <Droplets size={13} /> },
   ];
 
   /* ── Loading ── */
@@ -140,9 +123,7 @@ const Records_page = () => {
           <div className="card">
             <div className="card-body">
               <div className="empty-state">
-                <div className="empty-state-icon" aria-hidden="true">
-                  🔍
-                </div>
+                <div className="empty-state-icon" aria-hidden="true">🔍</div>
                 <p className="empty-state-title">Patient not found</p>
                 <p className="empty-state-text">
                   No patient with ID #{id} exists in the system.
@@ -152,8 +133,7 @@ const Records_page = () => {
                   style={{ marginTop: "var(--space-5)" }}
                   onClick={() => navigate("/patients")}
                 >
-                  <ArrowLeft size={15} aria-hidden="true" /> Back to Patient
-                  List
+                  <ArrowLeft size={15} aria-hidden="true" /> Back to Patient List
                 </button>
               </div>
             </div>
@@ -163,11 +143,13 @@ const Records_page = () => {
     );
   }
 
+  const patientName = `${patient.first_name} ${patient.last_name}`;
+
   /* ── Record ── */
   return (
     <main className="page-wrapper">
       <div className="page-container-md">
-        {/* Back link */}
+        {/* Back */}
         <div style={{ marginBottom: "var(--space-5)" }}>
           <button
             onClick={() => navigate("/patients")}
@@ -180,62 +162,55 @@ const Records_page = () => {
 
         {/* Alerts */}
         {error && (
-          <div
-            className="alert alert-error"
-            style={{ marginBottom: "var(--space-4)" }}
-            role="alert"
-          >
+          <div className="alert alert-error" style={{ marginBottom: "var(--space-4)" }} role="alert">
             <AlertCircle size={15} aria-hidden="true" />
             <span>{error}</span>
           </div>
         )}
         {success && (
-          <div
-            className="alert alert-success"
-            style={{ marginBottom: "var(--space-4)" }}
-            role="status"
-            aria-live="polite"
-          >
+          <div className="alert alert-success" style={{ marginBottom: "var(--space-4)" }} role="status" aria-live="polite">
             <span>Patient record updated successfully.</span>
           </div>
         )}
 
-        <div className="card">
-          {/* Card header */}
-          <div className="card-header">
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "var(--space-4)",
-              }}
-            >
+        {/* ── Patient info card ── */}
+        <div className="card" style={{ marginBottom: "var(--space-5)" }}>
+          <div className="card-header" style={{ alignItems: "flex-start", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)" }}>
               <div className="avatar avatar-lg" aria-hidden="true">
                 <User size={26} />
               </div>
               <div>
-                <h1
-                  style={{
-                    fontSize: "var(--text-xl)",
-                    fontWeight: "var(--font-bold)",
-                    marginBottom: "2px",
-                  }}
-                >
-                  {patient.first_name} {patient.last_name}
+                <h1 style={{ fontSize: "var(--text-xl)", fontWeight: "var(--font-bold)", marginBottom: "2px" }}>
+                  {patientName}
                 </h1>
-                <span className="badge badge-gray">
-                  Patient #{patient.patient_id}
-                </span>
+                <span className="badge badge-gray">Patient #{patient.patient_id}</span>
               </div>
             </div>
 
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "var(--space-2)",
-              }}
-            >
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
+              {canCreateRecord && (
+                <button
+                  type="button"
+                  className={showRecordForm ? "btn btn-secondary" : "btn btn-primary"}
+                  onClick={() => setShowRecordForm((v) => !v)}
+                  aria-expanded={showRecordForm}
+                >
+                  <ClipboardPlus size={15} aria-hidden="true" />
+                  {showRecordForm ? "Cancel" : "New Visit Record"}
+                </button>
+              )}
+
+              {canCreateRecord && (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => navigate(`/vitals/${patient.patient_id}`)}
+                >
+                  <Activity size={15} aria-hidden="true" /> Record Vitals
+                </button>
+              )}
+
               <Link to={`/plan?patient_id=${patient.patient_id}`} tabIndex={-1}>
                 <button type="button" className="btn btn-secondary">
                   Insurance Plan
@@ -250,55 +225,29 @@ const Records_page = () => {
               >
                 {saving ? (
                   <>
-                    <span
-                      className="loading-spinner"
-                      style={{
-                        width: "14px",
-                        height: "14px",
-                        borderWidth: "2px",
-                      }}
-                      aria-hidden="true"
-                    />
+                    <span className="loading-spinner" style={{ width: "14px", height: "14px", borderWidth: "2px" }} aria-hidden="true" />
                     Saving…
                   </>
                 ) : isEditing ? (
-                  <>
-                    <Save size={15} aria-hidden="true" /> Save Changes
-                  </>
+                  <><Save size={15} aria-hidden="true" /> Save Changes</>
                 ) : (
-                  <>
-                    <Edit size={15} aria-hidden="true" /> Edit Record
-                  </>
+                  <><Edit size={15} aria-hidden="true" /> Edit Record</>
                 )}
               </button>
             </div>
           </div>
 
-          {/* Fields */}
           <div className="card-body">
             {isEditing && (
-              <div
-                className="alert alert-info"
-                style={{ marginBottom: "var(--space-6)" }}
-                role="status"
-              >
-                <span>
-                  Editing mode — modify the fields below and click Save Changes.
-                </span>
+              <div className="alert alert-info" style={{ marginBottom: "var(--space-6)" }} role="status">
+                <span>Editing mode — modify the fields below and click Save Changes.</span>
               </div>
             )}
 
             <p className="form-section-title">Personal Details</p>
-            <div
-              className="form-grid-2"
-              style={{ marginBottom: "var(--space-8)" }}
-            >
+            <div className="form-grid-2" style={{ marginBottom: "var(--space-8)" }}>
               {FIELDS.map((field) => (
-                <div
-                  key={field.key}
-                  className="form-group"
-                  style={{ marginBottom: 0 }}
-                >
+                <div key={field.key} className="form-group" style={{ marginBottom: 0 }}>
                   <label htmlFor={`field-${field.key}`} className="form-label">
                     {field.icon} {field.label}
                   </label>
@@ -306,15 +255,9 @@ const Records_page = () => {
                     id={`field-${field.key}`}
                     type={field.type || "text"}
                     disabled={!isEditing}
-                    className={
-                      isEditing
-                        ? "form-input"
-                        : "form-input form-input-readonly"
-                    }
+                    className={isEditing ? "form-input" : "form-input form-input-readonly"}
                     value={patient[field.key] || ""}
-                    onChange={(e) =>
-                      setPatient({ ...patient, [field.key]: e.target.value })
-                    }
+                    onChange={(e) => setPatient({ ...patient, [field.key]: e.target.value })}
                     autoComplete={field.autoComplete}
                     aria-readonly={!isEditing}
                   />
@@ -330,13 +273,9 @@ const Records_page = () => {
               <input
                 id="field-address"
                 disabled={!isEditing}
-                className={
-                  isEditing ? "form-input" : "form-input form-input-readonly"
-                }
+                className={isEditing ? "form-input" : "form-input form-input-readonly"}
                 value={patient.address || ""}
-                onChange={(e) =>
-                  setPatient({ ...patient, address: e.target.value })
-                }
+                onChange={(e) => setPatient({ ...patient, address: e.target.value })}
                 autoComplete="street-address"
                 aria-readonly={!isEditing}
               />
@@ -348,16 +287,26 @@ const Records_page = () => {
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
-                onClick={() => {
-                  setIsEditing(false);
-                  setError("");
-                }}
+                onClick={() => { setIsEditing(false); setError(""); }}
               >
                 Cancel
               </button>
             </div>
           )}
         </div>
+
+        {/* ── New Visit Record form (doctor / admin only) ── */}
+        {canCreateRecord && showRecordForm && (
+          <div style={{ marginBottom: "var(--space-5)" }}>
+            <MedicalRecordForm
+              patientId={patient.patient_id}
+              patientName={patientName}
+            />
+          </div>
+        )}
+
+        {/* ── Visit history (all roles) ── */}
+        <PatientVisitHistory patientId={patient.patient_id} />
       </div>
     </main>
   );
