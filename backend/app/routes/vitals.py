@@ -44,7 +44,6 @@ def create_vitals():
 
         record = PatientVitals(
             patient_id=patient_id,
-            appointment_id=data.get("appointment_id"),
             recorded_by_user_id=g.current_user.user_id,
             recorded_at=datetime.now(timezone.utc),
             height_m=_to_float(data.get("height")),

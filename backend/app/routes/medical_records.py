@@ -37,7 +37,6 @@ def create_medical_record():
 
         record = MedicalRecord(
             patient_id=patient_id,
-            appointment_id=data.get("appointment_id"),
             provider_user_id=g.current_user.user_id,
             record_date=datetime.now(timezone.utc),
             diagnosis=diagnosis,

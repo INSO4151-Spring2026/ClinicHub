@@ -6,54 +6,36 @@ import { ClipboardList, AlertCircle, Activity, FileText } from "lucide-react";
 // Helpers
 // ---------------------------------------------------------------------------
 
+const THIRTY_MIN_MS = 30 * 60 * 1000;
+
 function mergeVisits(medicalRecords, vitalsData) {
-  const byAppt = new Map(); // appointment_id → { medRecord, vitals, date }
+  // Each medical record is its own card — no two records ever collapse into one
+  const cards = medicalRecords.map((rec) => ({
+    medRecord: rec,
+    vitals: null,
+    date: rec.record_date,
+    providerName: rec.provider_name,
+  }));
 
-  for (const rec of medicalRecords) {
-    if (rec.appointment_id) {
-      byAppt.set(rec.appointment_id, {
-        medRecord: rec,
-        vitals: null,
-        date: rec.record_date,
-        providerName: rec.provider_name,
-      });
-    }
-  }
-
+  // Attach each vitals entry to the nearest unmatched medical record within 30 min
   for (const v of vitalsData) {
-    if (v.appointment_id && byAppt.has(v.appointment_id)) {
-      byAppt.get(v.appointment_id).vitals = v;
-    } else if (v.appointment_id) {
-      byAppt.set(v.appointment_id, {
-        medRecord: null,
-        vitals: v,
-        date: v.recorded_at,
-        providerName: v.recorder_name,
-      });
+    const vTime = new Date(v.recorded_at).getTime();
+    let best = null;
+    let bestDiff = THIRTY_MIN_MS;
+
+    for (const card of cards) {
+      if (card.vitals) continue;
+      const diff = Math.abs(new Date(card.date).getTime() - vTime);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        best = card;
+      }
     }
-  }
 
-  // Standalone entries (no appointment_id) — group by calendar day
-  const standaloneVisits = [];
-
-  for (const rec of medicalRecords.filter((r) => !r.appointment_id)) {
-    standaloneVisits.push({
-      medRecord: rec,
-      vitals: null,
-      date: rec.record_date,
-      providerName: rec.provider_name,
-    });
-  }
-
-  for (const v of vitalsData.filter((v) => !v.appointment_id)) {
-    const vDay = v.recorded_at?.substring(0, 10);
-    const match = standaloneVisits.find(
-      (s) => s.medRecord && s.date?.substring(0, 10) === vDay
-    );
-    if (match) {
-      match.vitals = v;
+    if (best) {
+      best.vitals = v;
     } else {
-      standaloneVisits.push({
+      cards.push({
         medRecord: null,
         vitals: v,
         date: v.recorded_at,
@@ -62,17 +44,18 @@ function mergeVisits(medicalRecords, vitalsData) {
     }
   }
 
-  const all = [...byAppt.values(), ...standaloneVisits];
-  all.sort((a, b) => new Date(b.date) - new Date(a.date));
-  return all;
+  cards.sort((a, b) => new Date(b.date) - new Date(a.date));
+  return cards;
 }
 
 function formatDate(iso) {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-US", {
+  return new Date(iso).toLocaleString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   });
 }
 
@@ -92,7 +75,7 @@ function VitalRow({ label, value, unit }) {
 // Component
 // ---------------------------------------------------------------------------
 
-function PatientVisitHistory({ patientId }) {
+function PatientVisitHistory({ patientId, refreshKey = 0 }) {
   const navigate = useNavigate();
 
   const [visits, setVisits] = useState([]);
@@ -107,6 +90,7 @@ function PatientVisitHistory({ patientId }) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
+      cache: "no-store",
     });
 
     if (res.status === 401) {
@@ -159,7 +143,7 @@ function PatientVisitHistory({ patientId }) {
 
     load();
     return () => { cancelled = true; };
-  }, [patientId]);
+  }, [patientId, refreshKey]);
 
   return (
     <div className="card">

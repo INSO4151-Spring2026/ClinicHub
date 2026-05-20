@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ClipboardPlus, AlertCircle, CheckCircle } from "lucide-react";
 
-function MedicalRecordForm({ patientId, patientName, appointmentId }) {
+function MedicalRecordForm({ patientId, patientName, onSaved }) {
   const navigate = useNavigate();
 
   const [fields, setFields] = useState({
@@ -74,8 +74,6 @@ function MedicalRecordForm({ patientId, patientName, appointmentId }) {
         treatment_plan: fields.treatment_plan.trim(),
         notes: fields.notes.trim(),
       };
-      if (appointmentId) body.appointment_id = appointmentId;
-
       const result = await fetchJson("http://localhost:5000/api/medical-records", {
         method: "POST",
         body: JSON.stringify(body),
@@ -90,6 +88,7 @@ function MedicalRecordForm({ patientId, patientName, appointmentId }) {
 
       setSuccess("Visit record saved successfully.");
       setFields({ diagnosis: "", treatment_plan: "", notes: "" });
+      onSaved?.();
     } finally {
       setLoading(false);
     }

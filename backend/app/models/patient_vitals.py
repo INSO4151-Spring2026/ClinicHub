@@ -11,11 +11,6 @@ class PatientVitals(db.Model):
         db.ForeignKey("patients.patient_id", ondelete="CASCADE"),
         nullable=False,
     )
-    appointment_id = db.Column(
-        db.Integer,
-        db.ForeignKey("appointments.appointment_id", ondelete="SET NULL"),
-        nullable=True,
-    )
     recorded_by_user_id = db.Column(
         db.Integer,
         db.ForeignKey("users.user_id", ondelete="SET NULL"),
@@ -54,7 +49,6 @@ class PatientVitals(db.Model):
         return {
             "vital_id": self.vital_id,
             "patient_id": self.patient_id,
-            "appointment_id": self.appointment_id,
             "recorded_by_user_id": self.recorded_by_user_id,
             "recorded_at": self.recorded_at.isoformat() if self.recorded_at else None,
             "height_m": _f(self.height_m),

@@ -11,11 +11,6 @@ class MedicalRecord(db.Model):
         db.ForeignKey("patients.patient_id", ondelete="CASCADE"),
         nullable=False,
     )
-    appointment_id = db.Column(
-        db.Integer,
-        db.ForeignKey("appointments.appointment_id", ondelete="SET NULL"),
-        nullable=True,
-    )
     provider_user_id = db.Column(
         db.Integer,
         db.ForeignKey("users.user_id", ondelete="RESTRICT"),
@@ -37,7 +32,6 @@ class MedicalRecord(db.Model):
         return {
             "medical_record_id": self.medical_record_id,
             "patient_id": self.patient_id,
-            "appointment_id": self.appointment_id,
             "provider_user_id": self.provider_user_id,
             "record_date": self.record_date.isoformat() if self.record_date else None,
             "diagnosis": self.diagnosis,

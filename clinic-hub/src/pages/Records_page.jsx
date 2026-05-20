@@ -28,6 +28,7 @@ const Records_page = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [showRecordForm, setShowRecordForm] = useState(false);
+  const [historyKey, setHistoryKey] = useState(0);
 
   const role = (
     localStorage.getItem("userRole") ||
@@ -345,12 +346,13 @@ const Records_page = () => {
             <MedicalRecordForm
               patientId={patient.patient_id}
               patientName={patientName}
+              onSaved={() => setHistoryKey((k) => k + 1)}
             />
           </div>
         )}
 
         {/* ── Visit history (all roles) ── */}
-        <PatientVisitHistory patientId={patient.patient_id} />
+        <PatientVisitHistory patientId={patient.patient_id} refreshKey={historyKey} />
       </div>
     </main>
   );
