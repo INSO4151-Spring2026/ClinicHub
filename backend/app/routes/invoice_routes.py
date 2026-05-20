@@ -5,7 +5,7 @@ from app.models.appointment import Appointment
 from app.models.cpt import CPT
 from app.models.insurance_plan import InsurancePlan
 from app.utils.decorators import require_auth, require_role
-from datetime import datetime
+from datetime import datetime, date
 import logging
 from decimal import Decimal
 
@@ -105,6 +105,24 @@ def create_invoice():
         )
 
         plan = InsurancePlan.active_for_patient(appointment.patient_id)
+        if not plan:
+            return (
+                jsonify(
+                    {
+                        "error": "Patient must have an active insurance profile before billing"
+                    }
+                ),
+                400,
+            )
+
+        carrier = (plan.carrier_name or "").lower()
+        is_self_pay = "self" in carrier and "pay" in carrier
+        if not is_self_pay and plan.copay is None:
+            return (
+                jsonify({"error": "Insurance copay is required before billing"}),
+                400,
+            )
+
         total_amount = _to_decimal(getattr(cpt, "total", None))
         patient_amount, insurance_amount = _calculate_breakdown(total_amount, plan)
 
@@ -152,12 +170,20 @@ def update_invoice(invoice_id):
         if data["status"] not in ["paid", "unpaid"]:
             return jsonify({"error": "Invalid status"}), 400
 
+        cpt = db.session.get(CPT, invoice.cpt_id) if invoice.cpt_id else None
+
         if data["status"] == "paid":
             invoice.status = "paid"
             invoice.paid_at = datetime.utcnow()
+            if cpt:
+                cpt.status = "paid"
+                cpt.billing_date = date.today()
         else:
             invoice.status = "unpaid"
             invoice.paid_at = None
+            if cpt and cpt.status == "paid":
+                cpt.status = "submitted"
+                cpt.billing_date = None
 
         db.session.commit()
 
@@ -172,6 +198,45 @@ def update_invoice(invoice_id):
         db.session.rollback()
         logger.error(f"Error updating invoice {invoice_id}: {e}")
         return jsonify({"error": "Failed to update invoice"}), 500
+
+
+@invoices.route("/<int:invoice_id>/pay", methods=["PATCH"])
+@require_auth
+@require_role("admin", "receptionist")
+def pay_invoice(invoice_id):
+    """MVP payment flow: record an in-person payment by marking invoice paid.
+
+    This is intentionally lightweight for demo/MVP. It does not integrate with a payment processor.
+    """
+
+    try:
+        invoice = Invoice.query.get(invoice_id)
+
+        if not invoice:
+            return jsonify({"error": "Invoice not found"}), 404
+
+        if invoice.status != "paid":
+            invoice.status = "paid"
+            invoice.paid_at = datetime.utcnow()
+
+            cpt = db.session.get(CPT, invoice.cpt_id) if invoice.cpt_id else None
+            if cpt:
+                cpt.status = "paid"
+                cpt.billing_date = date.today()
+
+            db.session.commit()
+
+        return jsonify(
+            {
+                "message": "Invoice marked as paid",
+                "invoice": invoice.to_dict(include_amount=True),
+            }
+        ), 200
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error marking invoice {invoice_id} paid: {e}")
+        return jsonify({"error": "Failed to mark invoice as paid"}), 500
 
 
 @invoices.route("", methods=["GET"])

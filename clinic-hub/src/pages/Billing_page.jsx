@@ -11,6 +11,7 @@ function Billing_page() {
 
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [updatingInvoiceId, setUpdatingInvoiceId] = useState(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -139,6 +140,48 @@ function Billing_page() {
       const apptId = Number(selectedAppointmentId);
       const appt = appointmentById.get(apptId);
 
+      // Guardrail: don't change appointment status if billing is guaranteed to fail.
+      // Billing now requires an active insurance profile (including Self-Pay plan).
+      if (appt?.patient_id) {
+        const planRes = await fetchJson(
+          `http://localhost:5000/api/patients/${appt.patient_id}/plan`,
+          { method: "GET" },
+        );
+
+        if (!planRes) return;
+
+        if (!planRes.ok) {
+          setError(
+            planRes.data?.error ||
+              planRes.data?.message ||
+              "Could not verify the patient's insurance profile.",
+          );
+          return;
+        }
+
+        const plan = planRes.data?.plan;
+        if (!plan) {
+          setError(
+            `Patient ${appt.patient_id} must have an active insurance profile before billing. Add one in Plans.`,
+          );
+          return;
+        }
+
+        const carrier = String(plan?.carrier_name || "").toLowerCase();
+        const isSelfPay = carrier.includes("self") && carrier.includes("pay");
+        if (
+          !isSelfPay &&
+          (plan?.copay === null ||
+            plan?.copay === undefined ||
+            plan?.copay === "")
+        ) {
+          setError(
+            `Patient ${appt.patient_id} insurance profile is missing a copay. Add it in the patient's profile before billing.`,
+          );
+          return;
+        }
+      }
+
       // Backend requires appointment.status === 'completed' to invoice.
       if (appt && appt.status !== "completed") {
         const updateRes = await fetchJson(
@@ -188,6 +231,97 @@ function Billing_page() {
       setError("Connection failed. Is the Node server running on port 5000?");
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleMarkPaid = async (invoiceId) => {
+    if (updatingInvoiceId) return;
+
+    setError("");
+    setSuccess("");
+
+    const inv = invoices.find((i) => i?.invoice_id === invoiceId);
+    const patientDue = inv?.breakdown?.patient_amount;
+    if (typeof patientDue === "number") {
+      const ok = window.confirm(
+        `Record payment of $${patientDue.toFixed(2)} for invoice #${invoiceId}?`,
+      );
+      if (!ok) return;
+    }
+
+    setUpdatingInvoiceId(invoiceId);
+
+    try {
+      const res = await fetchJson(
+        `http://localhost:5000/api/invoices/${invoiceId}/pay`,
+        { method: "PATCH" },
+      );
+
+      if (!res) return;
+
+      if (res.ok) {
+        setSuccess(`Payment recorded. Invoice #${invoiceId} marked as paid.`);
+        await loadData();
+        return;
+      }
+
+      if (res.status === 403) {
+        setError(
+          "Access denied: Only Receptionists or Admins can record payments.",
+        );
+      } else {
+        setError(
+          res.data?.error ||
+            res.data?.message ||
+            "Could not mark invoice as paid.",
+        );
+      }
+    } catch {
+      setError("Connection failed. Is the Node server running on port 5000?");
+    } finally {
+      setUpdatingInvoiceId(null);
+    }
+  };
+
+  const handleMarkUnpaid = async (invoiceId) => {
+    if (updatingInvoiceId) return;
+
+    setError("");
+    setSuccess("");
+    setUpdatingInvoiceId(invoiceId);
+
+    try {
+      const res = await fetchJson(
+        `http://localhost:5000/api/invoices/${invoiceId}`,
+        {
+          method: "PUT",
+          body: JSON.stringify({ status: "unpaid" }),
+        },
+      );
+
+      if (!res) return;
+
+      if (res.ok) {
+        setSuccess(`Invoice #${invoiceId} marked as unpaid.`);
+        await loadData();
+        return;
+      }
+
+      if (res.status === 403) {
+        setError(
+          "Access denied: Only Receptionists or Admins can update invoice status.",
+        );
+      } else {
+        setError(
+          res.data?.error ||
+            res.data?.message ||
+            "Could not mark invoice as unpaid.",
+        );
+      }
+    } catch {
+      setError("Connection failed. Is the Node server running on port 5000?");
+    } finally {
+      setUpdatingInvoiceId(null);
     }
   };
 
@@ -283,7 +417,8 @@ function Billing_page() {
                     }}
                   >
                     Appointments with a CPT can be invoiced. If needed, billing
-                    will mark the appointment as completed first.
+                    will verify insurance first, then mark the appointment as
+                    completed.
                   </div>
                 </div>
 
@@ -344,8 +479,12 @@ function Billing_page() {
                       <th>Appointment</th>
                       <th>Patient</th>
                       <th>CPT</th>
+                      <th>Total</th>
+                      <th>Patient Due</th>
                       <th>Status</th>
                       <th>Issued</th>
+                      <th>Paid At</th>
+                      <th>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -359,6 +498,16 @@ function Billing_page() {
                             inv.cpt_id}
                         </td>
                         <td>
+                          {typeof inv?.breakdown?.total_amount === "number"
+                            ? `$${inv.breakdown.total_amount.toFixed(2)}`
+                            : "—"}
+                        </td>
+                        <td>
+                          {typeof inv?.breakdown?.patient_amount === "number"
+                            ? `$${inv.breakdown.patient_amount.toFixed(2)}`
+                            : "—"}
+                        </td>
+                        <td>
                           <span className={badgeForStatus(inv.status)}>
                             {inv.status || "—"}
                           </span>
@@ -367,6 +516,34 @@ function Billing_page() {
                           {inv.issued_at
                             ? new Date(inv.issued_at).toLocaleString()
                             : "—"}
+                        </td>
+                        <td>
+                          {inv.paid_at
+                            ? new Date(inv.paid_at).toLocaleString()
+                            : "—"}
+                        </td>
+                        <td>
+                          {inv.status === "paid" ? (
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => handleMarkUnpaid(inv.invoice_id)}
+                              disabled={Boolean(updatingInvoiceId)}
+                              aria-busy={updatingInvoiceId === inv.invoice_id}
+                            >
+                              Mark Unpaid
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn btn-success btn-sm"
+                              onClick={() => handleMarkPaid(inv.invoice_id)}
+                              disabled={Boolean(updatingInvoiceId)}
+                              aria-busy={updatingInvoiceId === inv.invoice_id}
+                            >
+                              Record Payment
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}
