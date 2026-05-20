@@ -1,6 +1,6 @@
 Steps to run the web page: need cd in app
 1.
-cd clinic_hub
+cd clinic-hub
 2.
 npm install
 3.
@@ -9,17 +9,17 @@ npm run dev
 
 Run node server, need cd in app
 1.
-cd clinic_hub
+cd clinic-hub
 2.
-node src/server.js
+node server/index.js
 
 to run all pages and servers, starts the node(rbac), flask request sender, need cd in app
 1.
-cd clinic_hub
+cd clinic-hub
 2.
 npm run start-all
 
-This starts the flask server for the db. need cd in backend
+This starts the Flask backend API (source of truth). It runs on port 5002.
 DB:
 1. 
 docker
@@ -40,6 +40,8 @@ DB_PASSWORD=clinichub2026
 5. 
 python run.py
 
+Note: In development, the backend defaults to using backend/instance/clinic.db (SQLite) unless you set DATABASE_URL.
+
 These need the to be cd in test
 test pytest 
 1.
@@ -53,3 +55,16 @@ python -m pytest -m integration
 tree structure, useful commnad to see all the project structure path
 1.
 npx tree-node-cli -I "node_modules|.git|__pycache__"
+
+
+stress test
+cd backend
+python -m locust -f tests/stress/locustfile.py --host http://localhost:5000 --users 100 --spawn-rate 2 
+open the link it provides for the interface
+
+
+python -m tests.stress.seed_db
+
+stronger server to to stress test 
+cd backend
+waitress-serve --port=5002 --threads=100 app:app
