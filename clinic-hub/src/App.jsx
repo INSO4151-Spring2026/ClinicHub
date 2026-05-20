@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import {
-  Activity,
   BarChart2,
   Calendar,
   ClipboardList,
@@ -109,13 +108,7 @@ const NavBar = ({ role, handleSignOut }) => {
             </Link>
           </li>
         )}
-        {["admin", "doctor"].includes(role) && (
-          <li>
-            <Link to="/vitals" className={cls("/vitals")}>
-              <Activity size={14} /> Vitals
-            </Link>
-          </li>
-        )}
+        {/* Vitals accessed per-patient from the patient list */}
         {["admin", "receptionist"].includes(role) && (
           <li>
             <Link to="/billing" className={cls("/billing")}>
@@ -197,14 +190,6 @@ const NAV_CARDS = [
     iconClass: "icon-orange",
     desc: "Book a new appointment",
     roles: ["admin", "doctor", "receptionist"],
-  },
-  {
-    to: "/vitals",
-    label: "Vitals",
-    icon: <Activity size={20} />,
-    iconClass: "icon-teal",
-    desc: "Record patient measurements",
-    roles: ["admin", "doctor"],
   },
   {
     to: "/billing",
@@ -609,7 +594,7 @@ function AppContent() {
         />
 
         <Route
-          path="/vitals"
+          path="/vitals/:patient_id"
           element={
             <ProtectedRoute allowedRoles={["admin", "doctor"]}>
               <Vitals_page />
