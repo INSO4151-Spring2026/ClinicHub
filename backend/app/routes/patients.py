@@ -1,13 +1,36 @@
 from flask import Blueprint, request, jsonify
 from app import db
 from app.models.patient import Patient
+from app.models.insurance_plan import InsurancePlan
 from app.utils.decorators import require_auth, require_role
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
 patients = Blueprint("patients", __name__, url_prefix="/api/patients")
+
+
+def _request_data_json_or_form() -> dict:
+    """Return request data for either JSON or multipart/form submissions."""
+    data = request.get_json(silent=True)
+    if isinstance(data, dict) and data:
+        return data
+    # Fallback to form fields (Plan_page.jsx submits FormData)
+    return request.form.to_dict(flat=True)
+
+
+def _parse_decimal(value: str | None) -> Decimal | None:
+    if value is None:
+        return None
+    if isinstance(value, str) and value.strip() == "":
+        return None
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, ValueError, TypeError):
+        return None
 
 
 # -----------------------------------------------------------------------------
@@ -120,11 +143,93 @@ def get_patient(patient_id):
 
 
 # -----------------------------------------------------------------------------
+# GET /api/patients/:id/plan - Get the active insurance plan for a patient
+# -----------------------------------------------------------------------------
+@patients.route("/<int:patient_id>/plan", methods=["GET"])
+@require_auth
+@require_role("admin", "doctor", "nurse", "receptionist")
+def get_patient_plan(patient_id: int):
+    try:
+        patient = db.session.get(Patient, patient_id)
+        if not patient:
+            return jsonify({"error": "Patient not found"}), 404
+
+        plan = InsurancePlan.active_for_patient(patient_id)
+        return jsonify({"plan": plan.to_dict() if plan else None}), 200
+    except Exception as e:
+        logger.error(f"Error retrieving patient plan {patient_id}: {e}")
+        return jsonify({"error": "Failed to retrieve patient plan"}), 500
+
+
+# -----------------------------------------------------------------------------
+# POST /api/patients/:id/plan - Create/replace the active insurance plan
+# -----------------------------------------------------------------------------
+@patients.route("/<int:patient_id>/plan", methods=["POST"])
+@require_auth
+@require_role("admin", "receptionist")
+def upsert_patient_plan(patient_id: int):
+    try:
+        patient = db.session.get(Patient, patient_id)
+        if not patient:
+            return jsonify({"error": "Patient not found"}), 404
+
+        data = _request_data_json_or_form()
+
+        carrier_name = (data.get("carrier_name") or "").strip()
+        member_id = (data.get("member_id") or "").strip()
+        if not carrier_name:
+            return jsonify({"error": "carrier_name is required"}), 400
+        if not member_id:
+            return jsonify({"error": "member_id is required"}), 400
+
+        effective_date = None
+        if data.get("effective_date"):
+            try:
+                effective_date = datetime.strptime(
+                    data["effective_date"], "%Y-%m-%d"
+                ).date()
+            except ValueError:
+                return jsonify(
+                    {"error": "Invalid effective_date format. Use YYYY-MM-DD"}
+                ), 400
+
+        copay = _parse_decimal(data.get("copay"))
+        if copay is not None and copay < 0:
+            return jsonify({"error": "copay must be >= 0"}), 400
+
+        # Deactivate existing active plans for this patient
+        InsurancePlan.query.filter_by(patient_id=patient_id, is_active=True).update(
+            {"is_active": False}
+        )
+
+        plan = InsurancePlan(
+            patient_id=patient_id,
+            carrier_name=carrier_name,
+            member_id=member_id,
+            group_id=(data.get("group_id") or "").strip() or None,
+            plan_type=(data.get("plan_type") or "").strip() or None,
+            effective_date=effective_date,
+            copay=copay,
+            is_active=True,
+        )
+
+        db.session.add(plan)
+        db.session.commit()
+
+        return jsonify({"message": "Plan saved", "plan": plan.to_dict()}), 201
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error saving patient plan {patient_id}: {e}")
+        return jsonify({"error": "Failed to save patient plan"}), 500
+
+
+# -----------------------------------------------------------------------------
 # PUT /api/patients/:id - Update a patient
 # -----------------------------------------------------------------------------
 @patients.route("/<int:patient_id>", methods=["PUT"])
 @require_auth
-@require_role("admin", "doctor", "nurse")
+@require_role("admin", "doctor", "nurse", "receptionist")
 def update_patient(patient_id):
     """
     Update an existing patient record
@@ -262,7 +367,9 @@ def list_patients():
             per_page = 100
 
         # Get search parameter
-        search = request.args.get("search", "", type=str)
+        # NOTE: The UI can send multi-word searches like "First Last".
+        # We split on whitespace so each term is matched independently.
+        search = (request.args.get("search", "", type=str) or "").strip()
 
         # Get sorting parameters
         sort_by = request.args.get("sort_by", "last_name", type=str)
@@ -285,14 +392,17 @@ def list_patients():
 
         # Apply search filter if provided
         if search:
-            search_filter = f"%{search}%"
-            query = query.filter(
-                db.or_(
-                    Patient.first_name.ilike(search_filter),
-                    Patient.last_name.ilike(search_filter),
-                    Patient.email.ilike(search_filter),
+            terms = [t for t in re.split(r"\s+", search) if t]
+            for term in terms:
+                search_filter = f"%{term}%"
+                # AND across terms; OR across fields within each term.
+                query = query.filter(
+                    db.or_(
+                        Patient.first_name.ilike(search_filter),
+                        Patient.last_name.ilike(search_filter),
+                        Patient.email.ilike(search_filter),
+                    )
                 )
-            )
 
         # Apply sorting
         sort_column = getattr(Patient, sort_by)

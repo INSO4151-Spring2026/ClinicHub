@@ -1,187 +1,328 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom' 
+import { useNavigate, useParams } from 'react-router-dom'
+import { Activity, AlertCircle, ArrowLeft } from 'lucide-react'
+
+const BMI_CONFIG = {
+  Underweight: { badge: 'badge-yellow', range: '< 18.5' },
+  Normal:      { badge: 'badge-green',  range: '18.5–24.9' },
+  Overweight:  { badge: 'badge-yellow', range: '25–29.9' },
+  Obese:       { badge: 'badge-red',    range: '≥ 30' },
+}
 
 function Vitals_page() {
-  const navigate = useNavigate(); 
+  const navigate = useNavigate()
+  const { patient_id } = useParams()
 
-  const [height, setHeight] = useState('')
-  const [weight, setWeight] = useState('')
-  const [bmi, setBmi] = useState('')
-  const [bmi_category, setBmiPercentage] = useState('')
-  const [bp, setBp] = useState('')
-  const [temperature, setTemperature] = useState('')
-  const [pulse, setPulse] = useState('')
+  const [patientName, setPatientName] = useState('')
+  const [height, setHeight]                    = useState('')
+  const [weight, setWeight]                    = useState('')
+  const [bp, setBp]                            = useState('')
+  const [temperature, setTemperature]          = useState('')
+  const [pulse, setPulse]                      = useState('')
   const [respiratory_rate, setRespiratoryRate] = useState('')
-  const [o2_saturation, setO2Saturation] = useState('')
-  const [pain_level, setPainLevel] = useState('0') 
-  const [head_circumference, setHeadCircumference] = useState('')
+  const [o2_saturation, setO2Saturation]       = useState('')
+  const [pain_level, setPainLevel]             = useState('0')
+  const [head_circumference, setHeadCirc]      = useState('')
+  const [loading, setLoading]                  = useState(false)
+  const [error, setError]                      = useState('')
+  const [success, setSuccess]                  = useState(false)
 
-useEffect(() => {
-  if (height && weight) {
-    const h = parseFloat(height)
-    const w = parseFloat(weight)
-    if (h > 0) {
-      const calculatedBmi = (w / (h * h)).toFixed(2)
-      setBmi(calculatedBmi)
-      
-      // Determine the Medical Category
-      let category = ''
-      if (calculatedBmi < 18.5) category = 'Underweight'
-      else if (calculatedBmi < 25) category = 'Normal'
-      else if (calculatedBmi < 30) category = 'Overweight'
-      else category = 'Obese'
-      
-      setBmiPercentage(category) 
+  const token = localStorage.getItem('token')
+
+  const h = parseFloat(height)
+  const w = parseFloat(weight)
+  const bmi = h > 0 && w > 0 ? (w / (h * h)).toFixed(2) : ''
+  const bmi_category = bmi
+    ? bmi < 18.5 ? 'Underweight' : bmi < 25 ? 'Normal' : bmi < 30 ? 'Overweight' : 'Obese'
+    : ''
+
+  // Load patient name for display
+  useEffect(() => {
+    if (!patient_id) return
+    if (!token) { navigate('/login'); return }
+
+    fetch(`http://localhost:5000/api/patients/${patient_id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) setPatientName(`${data.first_name} ${data.last_name}`)
+      })
+      .catch(() => {})
+  }, [patient_id, token, navigate])
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+    setSuccess(false)
+    setLoading(true)
+
+    if (!token) { navigate('/login'); return }
+    if (!patient_id) {
+      setError('No patient selected. Return to the patient list and try again.')
+      setLoading(false)
+      return
     }
-  } else {
-    setBmi('')
-    setBmiPercentage('')
-  }
-}, [height, weight])
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
+    const payload = {
+      patient_id: Number(patient_id),
+      height, weight, bmi, bmi_category,
+      bp, temperature, pulse, respiratory_rate,
+      o2_saturation, pain_level, head_circumference,
+    }
 
-  const vitals = {
-    height, weight, bmi, bmi_category, 
-    bp, temperature, pulse, respiratory_rate, 
-    o2_saturation, pain_level, head_circumference 
-  };
-
-  const token = localStorage.getItem('token');
-
-  try {
+    try {
       const response = await fetch('http://localhost:5000/api/vitals', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(vitals),
-      });
+        body: JSON.stringify(payload),
+      })
+
+      if (response.status === 401) { navigate('/login'); return }
+      if (response.status === 403) {
+        setError('Access denied: only Doctors and Admins can record vitals.')
+        return
+      }
+
+      const data = await response.json()
 
       if (response.ok) {
-        alert("✅ Vitals saved successfully!");
-        navigate('/'); 
-      } else if (response.status === 401) {
-        alert("⚠️ You are not logged in.");
-      } else if (response.status === 403) {
-        alert("🚫 Access Denied: Only Doctors can save vitals.");
+        setSuccess(true)
+        // Reset measurements
+        setHeight(''); setWeight(''); setBp(''); setTemperature('')
+        setPulse(''); setRespiratoryRate(''); setO2Saturation('')
+        setPainLevel('0'); setHeadCirc('')
+      } else {
+        setError(data?.error || 'Could not save vitals. Please try again.')
       }
-    } catch (err) {
-      alert("❌ Connection Failed. Check if the server is running.");
+    } catch {
+      setError('Connection failed. Check if the server is running.')
+    } finally {
+      setLoading(false)
     }
-  };
+  }
+
+  const Field = ({ id, label, required, children }) => (
+    <div className="form-group" style={{ marginBottom: 0 }}>
+      <label htmlFor={id} className="form-label">
+        {label}{required && <span className="required" aria-hidden="true"> *</span>}
+      </label>
+      {children}
+    </div>
+  )
 
   return (
-    <div style={{ maxWidth: '700px', margin: '40px auto', padding: '30px', border: '1px solid #ddd', borderRadius: '8px', fontFamily: 'Arial, sans-serif' }}>
-      <h1 style={{ borderBottom: '2px solid #eee', paddingBottom: '10px' }}>Patient Vitals</h1>
-      <form onSubmit={handleSubmit}>
-        
-        {/* Physical Measurements Row */}
-        <h3 style={{ fontSize: '1rem', color: '#555' }}>Measurements</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
-          {/* Height div */}
-          <div>
-            <label>Height (m)</label>
-            <input type="number" step="0.01" value={height} onChange={(e) => setHeight(e.target.value)} style={inputStyle} required />
-          </div>
-          {/* Wheight div */}
-          <div>
-            <label>Weight (kg)</label>
-            <input type="number" step="0.1" value={weight} onChange={(e) => setWeight(e.target.value)} style={inputStyle} required />
-          </div>
-          {/* Bmi div */}
-          <div>
-            <label>BMI</label>
-            <input value={bmi} readOnly style={readOnlyStyle} />
-          </div>
-          {/* Bmi category div */}
-          <div>
-            <label>Category</label>
-            <input 
-              value={bmi_category} 
-              readOnly 
-              style={{ ...readOnlyStyle, color: 'white', fontWeight: 'bold', textAlign: 'center' }} 
-            />
-          </div>
-          {/* Head circumference div */}
-          <div style={{ marginTop: '12px', width: '100%' }}>
-              <label>Head Circ. (cm)</label>
-              <input type="number" value={head_circumference} onChange={(e) => setHeadCircumference(e.target.value)} style={inputStyle} required />
-          </div>
+    <main className="page-wrapper">
+      <div className="page-container-sm">
+        {/* Back */}
+        <div style={{ marginBottom: 'var(--space-5)' }}>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => navigate('/patients')}
+            aria-label="Back to patient list"
+          >
+            <ArrowLeft size={15} aria-hidden="true" /> Back to Patient List
+          </button>
         </div>
 
-        {/* Vital Signs Row 1 */}
-        <h3 style={{ fontSize: '1rem', color: '#555' }}>Vitals</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-          {/* Bp div */}
-          <div>
-            <label>BP (mmHg)</label>
-            <input placeholder="120/80" value={bp} onChange={(e) => setBp(e.target.value)} style={inputStyle} required />
-          </div>
-          {/* Temp div */}
-          <div>
-            <label>Temp (°C)</label>
-            <input type="number" step="0.1" value={temperature} onChange={(e) => setTemperature(e.target.value)} style={inputStyle} required />
-          </div>
-          {/* Pulse div */}
-          <div>
-            <label>Pulse (bpm)</label>
-            <input type="number" value={pulse} onChange={(e) => setPulse(e.target.value)} style={inputStyle} required />
-          </div>
+        <div className="page-header">
+          <h1 className="page-title">Patient Vitals</h1>
+          <p className="page-subtitle">
+            {patientName
+              ? `Recording vitals for ${patientName}`
+              : 'Record the patient\'s current physical measurements and vital signs.'}
+          </p>
         </div>
 
-        {/* Vital Signs Row 2 */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginTop: '12px' }}>
-          {/* Respiratory rate div */}
-          <div>
-            <label>Resp. Rate</label>
-            <input type="number" value={respiratory_rate} onChange={(e) => setRespiratoryRate(e.target.value)} style={inputStyle} required />
+        {error && (
+          <div className="alert alert-error" style={{ marginBottom: 'var(--space-5)' }} role="alert">
+            <AlertCircle size={15} aria-hidden="true" />
+            <span>{error}</span>
           </div>
-          {/* O2 Saturation div */}
-          <div>
-            <label>O2 Sat (%)</label>
-            <input type="number" value={o2_saturation} onChange={(e) => setO2Saturation(e.target.value)} style={inputStyle} required />
+        )}
+
+        {success && (
+          <div className="alert alert-success" style={{ marginBottom: 'var(--space-5)' }} role="status" aria-live="polite">
+            Vitals recorded successfully.
           </div>
-          {/* Pain div */}
-          <div>
-            <label>Pain (0-10)</label>
-            <input 
-              type="number" 
-              min="0" 
-              max="10" 
-              value={pain_level} 
-              onChange={(e) => setPainLevel(e.target.value)} 
-              placeholder="0"
-              style={inputStyle} 
-              required
-            />
+        )}
+
+        <form onSubmit={handleSubmit} noValidate aria-label="Patient vitals form">
+          {/* Measurements */}
+          <div className="card" style={{ marginBottom: 'var(--space-5)' }}>
+            <div className="card-header">
+              <h2 className="card-title">Body Measurements</h2>
+            </div>
+            <div className="card-body">
+              <div className="form-grid-2">
+                <Field id="height" label="Height (m)" required>
+                  <input
+                    type="number" id="height" step="0.01"
+                    className="form-input" value={height}
+                    onChange={(e) => setHeight(e.target.value)}
+                    required aria-required="true"
+                    placeholder="e.g. 1.75"
+                  />
+                </Field>
+
+                <Field id="weight" label="Weight (kg)" required>
+                  <input
+                    type="number" id="weight" step="0.1"
+                    className="form-input" value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    required aria-required="true"
+                    placeholder="e.g. 72.0"
+                  />
+                </Field>
+
+                {/* BMI readout */}
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">BMI (auto-calculated)</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                    <input
+                      className="form-input form-input-readonly"
+                      value={bmi || '—'}
+                      readOnly
+                      aria-label="Calculated BMI"
+                      style={{ flex: 1 }}
+                    />
+                    {bmi_category && (
+                      <span
+                        className={`badge ${BMI_CONFIG[bmi_category]?.badge}`}
+                        aria-label={`BMI category: ${bmi_category}`}
+                      >
+                        {bmi_category}
+                      </span>
+                    )}
+                  </div>
+                  {bmi_category && (
+                    <p className="form-hint">Range: {BMI_CONFIG[bmi_category]?.range}</p>
+                  )}
+                </div>
+
+                <Field id="head_circumference" label="Head Circumference (cm)">
+                  <input
+                    type="number" id="head_circumference" step="0.1"
+                    className="form-input" value={head_circumference}
+                    onChange={(e) => setHeadCirc(e.target.value)}
+                    placeholder="e.g. 56"
+                  />
+                </Field>
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* Additional Info Row */}
+          {/* Vital Signs */}
+          <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
+            <div className="card-header">
+              <h2 className="card-title">Vital Signs</h2>
+            </div>
+            <div className="card-body">
+              <div className="form-grid-3" style={{ marginBottom: 'var(--space-5)' }}>
+                <Field id="bp" label="Blood Pressure (mmHg)" required>
+                  <input
+                    id="bp" className="form-input" value={bp}
+                    onChange={(e) => setBp(e.target.value)}
+                    placeholder="120/80"
+                    required aria-required="true"
+                  />
+                </Field>
 
+                <Field id="temperature" label="Temperature (°C)" required>
+                  <input
+                    type="number" id="temperature" step="0.1"
+                    className="form-input" value={temperature}
+                    onChange={(e) => setTemperature(e.target.value)}
+                    placeholder="36.6"
+                    required aria-required="true"
+                  />
+                </Field>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '30px' }}>
-            <button type="submit" style={saveButtonStyle}>
-              Save Vitals
+                <Field id="pulse" label="Pulse (bpm)" required>
+                  <input
+                    type="number" id="pulse"
+                    className="form-input" value={pulse}
+                    onChange={(e) => setPulse(e.target.value)}
+                    placeholder="72"
+                    required aria-required="true"
+                  />
+                </Field>
+              </div>
+
+              <div className="form-grid-3">
+                <Field id="respiratory_rate" label="Resp. Rate (/min)" required>
+                  <input
+                    type="number" id="respiratory_rate"
+                    className="form-input" value={respiratory_rate}
+                    onChange={(e) => setRespiratoryRate(e.target.value)}
+                    placeholder="16"
+                    required aria-required="true"
+                  />
+                </Field>
+
+                <Field id="o2_saturation" label="O₂ Saturation (%)" required>
+                  <input
+                    type="number" id="o2_saturation"
+                    className="form-input" value={o2_saturation}
+                    onChange={(e) => setO2Saturation(e.target.value)}
+                    placeholder="98"
+                    required aria-required="true"
+                  />
+                </Field>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label htmlFor="pain_level" className="form-label">
+                    Pain Level (0–10) <span className="required" aria-hidden="true">*</span>
+                  </label>
+                  <input
+                    type="number" id="pain_level" min="0" max="10"
+                    className="form-input" value={pain_level}
+                    onChange={(e) => setPainLevel(e.target.value)}
+                    placeholder="0"
+                    required aria-required="true"
+                  />
+                  <p className="form-hint">0 = no pain · 10 = worst possible</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+            <button
+              type="submit"
+              className="btn btn-success btn-full btn-lg"
+              disabled={loading}
+              aria-busy={loading}
+            >
+              {loading ? (
+                <>
+                  <span className="loading-spinner" style={{ width: '16px', height: '16px', borderWidth: '2px' }} aria-hidden="true" />
+                  Saving vitals…
+                </>
+              ) : (
+                <>
+                  <Activity size={17} aria-hidden="true" />
+                  Save Vitals
+                </>
+              )}
             </button>
-            
-            <Link to="/" style={{ textDecoration: 'none' }}>
-                <button type="button" style={backButtonStyle}>
-                  Go Back Home
-                </button>
-            </Link>
-        </div>
-      </form>
-    </div>
+
+            <button
+              type="button"
+              className="btn btn-secondary btn-full"
+              onClick={() => navigate(`/records/${patient_id}`)}
+            >
+              View Patient Record
+            </button>
+          </div>
+        </form>
+      </div>
+    </main>
   )
 }
 
-const inputStyle = { width: '100%', padding: '8px', boxSizing: 'border-box', borderRadius: '4px', border: '1px solid #ccc' };
-const readOnlyStyle = { width: '100%', padding: '8px', backgroundColor: '#555', color: '#eee', border: '1px solid #ccc', boxSizing: 'border-box' };
-const saveButtonStyle = { width: '100%', padding: '12px', background: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px' };
-const backButtonStyle = { width: '100%', padding: '10px', background: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px' };
-
-export default Vitals_page;
+export default Vitals_page

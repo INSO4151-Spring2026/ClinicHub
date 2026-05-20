@@ -1,165 +1,576 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; 
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import {
+  CalendarCheck,
+  Calendar,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
 
 const Appointment_page = () => {
-  const navigate = useNavigate(); 
-  
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    service: 'Consultation',
-    date: '',
-    time: '',
-    notes: ''
-  });
+  const navigate = useNavigate();
 
+  const [cptCodes, setCptCodes] = useState([]);
+  const [cptLoading, setCptLoading] = useState(true);
+
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    cptCodeId: "",
+    date: "",
+    time: "",
+    notes: "",
+  });
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const selectedCpt = useMemo(() => {
+    const match = cptCodes.find(
+      (c) => String(c.cpt_code_id) === String(formData.cptCodeId),
+    );
+    return match || null;
+  }, [cptCodes, formData.cptCodeId]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    const loadCptCodes = async () => {
+      setCptLoading(true);
+      try {
+        const res = await fetch("http://localhost:5000/api/cpt_codes", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.status === 401) {
+          navigate("/login");
+          return;
+        }
+
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { message: text };
+        }
+
+        if (!res.ok) {
+          setCptCodes([]);
+          setError(
+            data?.error ||
+              data?.message ||
+              `Failed to load CPT codes (HTTP ${res.status}).`,
+          );
+          return;
+        }
+
+        const items = Array.isArray(data) ? data : [];
+        setCptCodes(items);
+
+        if (items.length > 0) {
+          setFormData((f) => ({
+            ...f,
+            cptCodeId: f.cptCodeId || String(items[0].cpt_code_id),
+          }));
+        }
+      } catch {
+        setError("Connection failed. Is the server running?");
+      } finally {
+        setCptLoading(false);
+      }
+    };
+
+    loadCptCodes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setFormData((f) => ({ ...f, [name]: value }));
   };
 
-const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem('token');
+    setError("");
+    setLoading(true);
 
-    // 1. COMBINE DATE AND TIME
-    // The backend model uses 'scheduled_start' (DateTime). 
-    // We combine your separate date and time fields into one ISO string.
-    const startDateTime = `${formData.date}T${formData.time}:00`;
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login");
+      setLoading(false);
+      return;
+    }
 
-    // 2. DATA MAPPING FOR BACKEND MODEL
+    const getUserIdFromToken = (jwtToken) => {
+      try {
+        const parts = String(jwtToken).split(".");
+        if (parts.length < 2) return null;
+        const base64Url = parts[1];
+        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+        const padded = base64.padEnd(
+          base64.length + ((4 - (base64.length % 4)) % 4),
+          "=",
+        );
+        const json = atob(padded);
+        const payload = JSON.parse(json);
+        const id = payload?.user_id;
+        return typeof id === "number" ? id : Number(id);
+      } catch {
+        return null;
+      }
+    };
+
+    const providerUserId = getUserIdFromToken(token);
+    if (!providerUserId || Number.isNaN(providerUserId)) {
+      setError(
+        "Could not determine the logged-in provider. Please log in again.",
+      );
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.cptCodeId) {
+      setError("Please select a service (CPT code) before booking.");
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.email || !String(formData.email).trim()) {
+      setError("Please enter the patient's email address.");
+      setLoading(false);
+      return;
+    }
+
+    const email = String(formData.email).trim();
+
+    const resolvePatientIdByEmail = async () => {
+      const res = await fetch(
+        `http://localhost:5000/api/patients?search=${encodeURIComponent(email)}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      if (res.status === 401) {
+        navigate("/login");
+        return { unauthorized: true, patientId: null };
+      }
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(
+          data?.error ||
+            data?.message ||
+            `Failed to look up patient by email (HTTP ${res.status}).`,
+        );
+        return { unauthorized: false, patientId: null };
+      }
+
+      const patients = Array.isArray(data?.patients) ? data.patients : [];
+      const exact = patients.find(
+        (p) => String(p?.email || "").toLowerCase() === email.toLowerCase(),
+      );
+
+      const match = exact || patients[0] || null;
+      return { unauthorized: false, patientId: match?.patient_id ?? null };
+    };
+
+    const lookup = await resolvePatientIdByEmail();
+    if (lookup?.unauthorized) {
+      setLoading(false);
+      return;
+    }
+
+    const patientId = lookup?.patientId ?? null;
+    if (!patientId) {
+      if (!error) {
+        setError(
+          "Patient not found for that email. Create the patient record first.",
+        );
+      }
+      setLoading(false);
+      return;
+    }
+
+    const start = new Date(`${formData.date}T${formData.time}:00`);
+    const end = new Date(start.getTime() + 30 * 60 * 1000);
+
     const payload = {
-      // These IDs are required by your model. 
-      // For now, we use 1 as a placeholder until you add patient/provider selection.
-      patient_id: 1, 
-      provider_user_id: 1, 
-      
-      // Match the model's 'scheduled_start' column
-      appointment_date: startDateTime, 
-      
-      reason: formData.service,
-      notes: formData.notes
+      patient_id: patientId,
+      provider_user_id: providerUserId,
+      scheduled_start: start.toISOString(),
+      scheduled_end: end.toISOString(),
+      cpt_code_id: Number(formData.cptCodeId),
+      reason: selectedCpt
+        ? `${selectedCpt.code} - ${selectedCpt.description}`
+        : undefined,
+      notes: formData.notes,
     };
 
     try {
-      const response = await fetch('http://localhost:5000/api/appointments', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
+      const response = await fetch("http://localhost:5000/api/appointments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
       });
+
+      if (response.status === 401) {
+        navigate("/login");
+        return;
+      }
 
       const result = await response.json();
 
       if (response.ok) {
         setSubmitted(true);
       } else {
-        // Show the specific error from Flask (e.g., conflict or missing field)
-        alert(`⚠️ Error: ${result.error || "Could not save appointment."}`);
+        setError(
+          result.error || "Could not save appointment. Please try again.",
+        );
       }
-    } catch (err) {
-      console.error("Connection error:", err);
-      alert("❌ Connection Failed.");
+    } catch {
+      setError("Connection failed. Is the server running?");
+    } finally {
+      setLoading(false);
     }
   };
 
+  /* ── Success State ── */
   if (submitted) {
     return (
-      <div style={{ textAlign: 'center', padding: '50px' }}>
-        <h2>Success! </h2>
-        <p>Your appointment for {formData.service} on {formData.date} at {formData.time} is confirmed.</p>
-        <button onClick={() => setSubmitted(false)} style={buttonStyle}>Book Another</button>
-        <button onClick={() => navigate('/calendar')} style={backButtonStyle}>Go Back to Calendar</button>
-      </div>
+      <main
+        className="page-wrapper"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "calc(100vh - 60px)",
+        }}
+      >
+        <div style={{ width: "100%", maxWidth: "480px", textAlign: "center" }}>
+          <div className="card">
+            <div
+              className="card-body"
+              style={{ padding: "var(--space-10) var(--space-8)" }}
+            >
+              <div
+                style={{
+                  display: "inline-flex",
+                  width: "60px",
+                  height: "60px",
+                  backgroundColor: "var(--color-success-light)",
+                  borderRadius: "50%",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: "var(--space-5)",
+                }}
+                aria-hidden="true"
+              >
+                <CheckCircle2
+                  size={32}
+                  style={{ color: "var(--color-success)" }}
+                />
+              </div>
+              <h1
+                style={{
+                  fontSize: "var(--text-xl)",
+                  fontWeight: "var(--font-bold)",
+                  marginBottom: "var(--space-2)",
+                }}
+              >
+                Appointment Confirmed
+              </h1>
+              <p
+                style={{
+                  color: "var(--color-text-secondary)",
+                  marginBottom: "var(--space-6)",
+                  fontSize: "var(--text-sm)",
+                }}
+              >
+                <strong>
+                  {selectedCpt
+                    ? `${selectedCpt.code} - ${selectedCpt.description}`
+                    : "Appointment"}
+                </strong>{" "}
+                scheduled for{" "}
+                <strong>
+                  {new Date(
+                    `${formData.date}T${formData.time}`,
+                  ).toLocaleDateString("en-US", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </strong>{" "}
+                at <strong>{formData.time}</strong>.
+              </p>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "var(--space-3)",
+                }}
+              >
+                <button
+                  className="btn btn-primary btn-full"
+                  onClick={() => navigate("/calendar")}
+                >
+                  <Calendar size={16} aria-hidden="true" />
+                  View on Calendar
+                </button>
+                <button
+                  className="btn btn-secondary btn-full"
+                  onClick={() => {
+                    setSubmitted(false);
+                    setFormData({
+                      name: "",
+                      email: "",
+                      cptCodeId: cptCodes.length
+                        ? String(cptCodes[0].cpt_code_id)
+                        : "",
+                      date: "",
+                      time: "",
+                      notes: "",
+                    });
+                  }}
+                >
+                  Book Another Appointment
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
     );
   }
 
+  /* ── Form ── */
   return (
-    <div style={{ maxWidth: '500px', margin: '40px auto', padding: '20px', border: '1px solid #ddd', borderRadius: '8px' }}>
-      <h2 style={{ textAlign: 'center' }}>Schedule an Appointment</h2>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        
-        <label>
-          Full Name:
-          <input type="text" name="name" value={formData.name} onChange={handleChange} required style={inputStyle} />
-        </label>
-        
-        <label>
-          Email:
-          <input type="email" name="email" value={formData.email} onChange={handleChange} required style={inputStyle} />
-        </label>
-        
-        <label>
-          Service:
-          <select name="service" value={formData.service} onChange={handleChange} style={inputStyle}>
-            <option value="Consultation">Consultation</option>
-            <option value="General Checkup">General Checkup</option>
-            <option value="Follow-up">Follow-up</option>
-          </select>
-        </label>
-
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <label style={{ flex: 1 }}>
-            Date:
-            <input type="date" name="date" value={formData.date} onChange={handleChange} required style={inputStyle} />
-          </label>
-          <label style={{ flex: 1 }}>
-            Time:
-            <input type="time" name="time" value={formData.time} onChange={handleChange} required style={inputStyle} />
-          </label>
+    <main className="page-wrapper">
+      <div className="page-container-sm">
+        <div className="page-header">
+          <h1 className="page-title">Schedule an Appointment</h1>
+          <p className="page-subtitle">
+            Fill in the details to book a clinic appointment.
+          </p>
         </div>
 
-        <label>
-          Notes (Optional):
-          <textarea name="notes" value={formData.notes} onChange={handleChange} style={{ ...inputStyle, height: '80px' }} />
-        </label>
+        {error && (
+          <div
+            className="alert alert-error"
+            style={{ marginBottom: "var(--space-5)" }}
+            role="alert"
+          >
+            <AlertCircle size={15} aria-hidden="true" />
+            <span>{error}</span>
+          </div>
+        )}
 
-        <button type="submit" style={buttonStyle}>Confirm Booking</button>
-      </form>
+        <div className="card">
+          <div className="card-body">
+            <form
+              onSubmit={handleSubmit}
+              noValidate
+              aria-label="Schedule appointment form"
+            >
+              <div className="form-group">
+                <label htmlFor="appt-name" className="form-label">
+                  Patient Name{" "}
+                  <span className="required" aria-hidden="true">
+                    *
+                  </span>
+                </label>
+                <input
+                  type="text"
+                  id="appt-name"
+                  name="name"
+                  className="form-input"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
+                  aria-required="true"
+                  autoComplete="name"
+                  placeholder="Full name"
+                />
+              </div>
 
-      <button 
-        onClick={() => navigate('/calendar')} 
-        style={{ ...backButtonStyle, width: '100%', marginTop: '20px', marginLeft: '0' }}
-      >
-          Cancel and Return to Calendar
-      </button>
-    </div>
+              <div className="form-group">
+                <label htmlFor="appt-email" className="form-label">
+                  Email Address{" "}
+                  <span className="required" aria-hidden="true">
+                    *
+                  </span>
+                </label>
+                <input
+                  type="email"
+                  id="appt-email"
+                  name="email"
+                  className="form-input"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                  aria-required="true"
+                  autoComplete="email"
+                  placeholder="patient@email.com"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="appt-service" className="form-label">
+                  Service Type{" "}
+                  <span className="required" aria-hidden="true">
+                    *
+                  </span>
+                </label>
+                <select
+                  id="appt-service"
+                  name="cptCodeId"
+                  className="form-select"
+                  value={formData.cptCodeId}
+                  onChange={handleChange}
+                  required
+                  aria-required="true"
+                  disabled={cptLoading || cptCodes.length === 0}
+                >
+                  {cptLoading ? (
+                    <option value="">Loading CPT codes…</option>
+                  ) : cptCodes.length === 0 ? (
+                    <option value="">No CPT codes available</option>
+                  ) : (
+                    cptCodes.map((c) => (
+                      <option key={c.cpt_code_id} value={c.cpt_code_id}>
+                        {c.code} · {c.description}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+
+              <div className="form-grid-2">
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label htmlFor="appt-date" className="form-label">
+                    Date{" "}
+                    <span className="required" aria-hidden="true">
+                      *
+                    </span>
+                  </label>
+                  <input
+                    type="date"
+                    id="appt-date"
+                    name="date"
+                    className="form-input"
+                    value={formData.date}
+                    onChange={handleChange}
+                    required
+                    aria-required="true"
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label htmlFor="appt-time" className="form-label">
+                    Time{" "}
+                    <span className="required" aria-hidden="true">
+                      *
+                    </span>
+                  </label>
+                  <input
+                    type="time"
+                    id="appt-time"
+                    name="time"
+                    className="form-input"
+                    value={formData.time}
+                    onChange={handleChange}
+                    required
+                    aria-required="true"
+                  />
+                </div>
+              </div>
+
+              <div
+                className="form-group"
+                style={{ marginTop: "var(--space-5)" }}
+              >
+                <label htmlFor="appt-notes" className="form-label">
+                  Notes (optional)
+                </label>
+                <textarea
+                  id="appt-notes"
+                  name="notes"
+                  className="form-textarea"
+                  value={formData.notes}
+                  onChange={handleChange}
+                  placeholder="Any additional details or concerns…"
+                  rows={3}
+                />
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "var(--space-3)",
+                  marginTop: "var(--space-2)",
+                }}
+              >
+                <button
+                  type="submit"
+                  className="btn btn-success btn-full btn-lg"
+                  disabled={loading}
+                  aria-busy={loading}
+                >
+                  {loading ? (
+                    <>
+                      <span
+                        className="loading-spinner"
+                        style={{
+                          width: "16px",
+                          height: "16px",
+                          borderWidth: "2px",
+                        }}
+                        aria-hidden="true"
+                      />
+                      Booking…
+                    </>
+                  ) : (
+                    <>
+                      <CalendarCheck size={17} aria-hidden="true" />
+                      Confirm Booking
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-full"
+                  onClick={() => navigate("/calendar")}
+                >
+                  Cancel — Return to Calendar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </main>
   );
-};
-
-// --- STYLES ---
-const inputStyle = { 
-    width: '100%', 
-    padding: '8px', 
-    marginTop: '5px', 
-    borderRadius: '4px', 
-    border: '1px solid #ccc', 
-    boxSizing: 'border-box' 
-};
-
-const buttonStyle = { 
-    backgroundColor: '#28a745', 
-    color: 'white', 
-    padding: '10px', 
-    border: 'none', 
-    borderRadius: '4px', 
-    cursor: 'pointer', 
-    fontSize: '16px' 
-};
-
-const backButtonStyle = { 
-    backgroundColor: '#6c757d', 
-    color: 'white', 
-    padding: '10px', 
-    border: 'none', 
-    borderRadius: '4px', 
-    cursor: 'pointer', 
-    fontSize: '16px',
-    marginLeft: '10px' 
 };
 
 export default Appointment_page;

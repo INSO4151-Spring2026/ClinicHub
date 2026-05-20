@@ -20,14 +20,6 @@ CREATE TABLE roles (
     name VARCHAR(50) NOT NULL UNIQUE
 );
 
--- Seed default roles
-INSERT INTO
-    roles (name)
-VALUES ('admin'),
-    ('doctor'),
-    ('nurse'),
-    ('receptionist');
-
 -- =============================================================================
 -- USERS
 -- Staff accounts; each user belongs to exactly one role
@@ -80,6 +72,28 @@ CREATE INDEX idx_patients_last_name ON patients (last_name);
 CREATE INDEX idx_patients_email ON patients (email);
 
 -- =============================================================================
+-- INSURANCE_PLANS
+-- Active insurance plan(s) for a patient. One plan should be marked active.
+-- =============================================================================
+CREATE TABLE insurance_plans (
+    plan_id SERIAL PRIMARY KEY,
+    patient_id INT NOT NULL REFERENCES patients (patient_id) ON DELETE CASCADE,
+    carrier_name VARCHAR(120) NOT NULL,
+    member_id VARCHAR(80) NOT NULL,
+    group_id VARCHAR(80),
+    plan_type VARCHAR(20),
+    effective_date DATE,
+    copay DECIMAL(10, 2) CHECK (copay >= 0),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_insurance_plans_patient_id ON insurance_plans (patient_id);
+
+CREATE INDEX idx_insurance_plans_active ON insurance_plans (is_active);
+
+-- =============================================================================
 -- CPT_CODES
 -- Standard CPT code definitions for procedures and services
 -- Used by frontend for dropdowns and price lookups
@@ -99,63 +113,6 @@ CREATE INDEX idx_cpt_codes_code ON cpt_codes (code);
 CREATE INDEX idx_cpt_codes_category ON cpt_codes (category);
 
 CREATE INDEX idx_cpt_codes_active ON cpt_codes (is_active);
-
--- Seed common CPT codes
-INSERT INTO
-    cpt_codes (
-        code,
-        description,
-        category,
-        default_price
-    )
-VALUES (
-        '99213',
-        'Office visit - established patient',
-        'Office Visit',
-        150.00
-    ),
-    (
-        '99214',
-        'Office visit - detailed',
-        'Office Visit',
-        200.00
-    ),
-    (
-        '99215',
-        'Office visit - comprehensive',
-        'Office Visit',
-        250.00
-    ),
-    (
-        '80053',
-        'Comprehensive metabolic panel',
-        'Lab Test',
-        45.00
-    ),
-    (
-        '85025',
-        'Complete blood count',
-        'Lab Test',
-        35.00
-    ),
-    (
-        '36415',
-        'Routine venipuncture',
-        'Lab Test',
-        25.00
-    ),
-    (
-        '90471',
-        'Immunization administration',
-        'Immunization',
-        30.00
-    ),
-    (
-        '90715',
-        'Tetanus, diphtheria toxoids vaccine',
-        'Immunization',
-        50.00
-    );
 
 -- =============================================================================
 -- CPT  (Current Procedural Terminology)
@@ -280,6 +237,8 @@ CREATE INDEX idx_appt_provider_date ON appointments (
 -- INVOICES
 -- Represents a finalized bill for an appointment / CPT record
 -- =============================================================================
+
+
 CREATE TABLE invoices (
     invoice_id SERIAL PRIMARY KEY,
 
@@ -297,11 +256,11 @@ CREATE TABLE invoices (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-    -- Prevent duplicate invoices for same appointment
-    CONSTRAINT uq_invoice_appointment UNIQUE (appointment_id)
-);
+-- Prevent duplicate invoices for same appointment
+CONSTRAINT uq_invoice_appointment UNIQUE (appointment_id) );
 
 CREATE INDEX idx_invoices_patient_id ON invoices (patient_id);
+
 CREATE INDEX idx_invoices_status ON invoices (status);
 
 -- =============================================================================
@@ -312,7 +271,6 @@ CREATE INDEX idx_invoices_status ON invoices (status);
 CREATE TABLE medical_records (
     medical_record_id SERIAL PRIMARY KEY,
     patient_id INT NOT NULL REFERENCES patients (patient_id) ON DELETE CASCADE,
-    appointment_id INT REFERENCES appointments (appointment_id) ON DELETE SET NULL,
     provider_user_id INT REFERENCES users (user_id) ON DELETE SET NULL,
     record_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     diagnosis VARCHAR(255),
@@ -323,9 +281,34 @@ CREATE TABLE medical_records (
 
 CREATE INDEX idx_medrec_patient_id ON medical_records (patient_id);
 
-CREATE INDEX idx_medrec_appointment_id ON medical_records (appointment_id);
-
 CREATE INDEX idx_medrec_record_date ON medical_records (record_date);
+
+-- =============================================================================
+-- PATIENT_VITALS
+-- Physical measurements recorded per visit; optionally linked to an appointment
+-- =============================================================================
+CREATE TABLE patient_vitals (
+    vital_id SERIAL PRIMARY KEY,
+    patient_id INT NOT NULL REFERENCES patients (patient_id) ON DELETE CASCADE,
+    recorded_by_user_id INT REFERENCES users (user_id) ON DELETE SET NULL,
+    recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    height_m DECIMAL(5, 2),
+    weight_kg DECIMAL(5, 2),
+    bmi DECIMAL(5, 2),
+    bmi_category VARCHAR(20),
+    blood_pressure VARCHAR(20),
+    temperature_c DECIMAL(4, 1),
+    pulse_bpm INT,
+    respiratory_rate INT,
+    o2_saturation DECIMAL(4, 1),
+    pain_level SMALLINT CHECK (pain_level BETWEEN 0 AND 10),
+    head_circumference_cm DECIMAL(5, 1),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_vitals_patient_id ON patient_vitals (patient_id);
+
+CREATE INDEX idx_vitals_recorded_at ON patient_vitals (recorded_at);
 
 -- =============================================================================
 -- AUDIT LOG
